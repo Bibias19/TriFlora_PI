@@ -1,0 +1,18 @@
+export const colors = {
+  background: '#F5EFE6',
+  surface: '#FFFFFF',
+  surfaceContainer: '#F3F4EE',
+  primary: '#3E5A3E',
+  primaryFixed: '#D3DEC9', 
+  secondary: '#5E8F6A',
+  tertiary: '#F07A3A',
+  rose: '#E56A8C',
+  sunflower: '#F2B33D',
+  lavender: '#9B6DBA',
+  textPrimary: '#1A1C19',
+  textSecondary: '#424940',
+  textOutline: '#767873',
+  border: '#E6D7C1',
+  error: '#BA1A1A',
+  white: '#FFFFFF',
+};
