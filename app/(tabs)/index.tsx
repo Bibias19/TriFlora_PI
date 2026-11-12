@@ -108,10 +108,10 @@ export default function Index() {
             style={styles.heroImage} 
           />
           <View style={styles.heroOverlay}>
+            {/* COLEÇÃO DE OUTONO BRANCO COMO ESTAVA */}
             <Text style={styles.heroTag}>COLEÇÃO DE OUTONO</Text>
             <Text style={styles.heroTitle}>Flores que conectam histórias</Text>
-            {/* Botão ajustado: ao invés de ir para categorias, ele rola para baixo ou apenas foca nos produtos */}
-            <TouchableOpacity style={styles.heroButton} onPress={() => { /* Aqui pode ser um scroll, por enquanto sem ação */ }}>
+            <TouchableOpacity style={styles.heroButton}>
               <Text style={styles.heroButtonText}>Explorar Coleção</Text>
             </TouchableOpacity>
           </View>
@@ -177,12 +177,32 @@ export default function Index() {
           </View>
         ) : (
           <>
+            <TouchableOpacity 
+              style={styles.monteBouquetBanner} 
+              onPress={() => router.push('/monte-bouquet')}
+              activeOpacity={0.9}
+            >
+              <Image 
+                source={require('../../assets/banner_monte.png')} 
+                style={styles.monteBouquetImage} 
+                resizeMode="cover"
+              />
+              
+              <View style={styles.monteBouquetOverlay}>
+                <View style={{ flex: 1 }}>
+                  {/* TEXTO MENOR E BRANCO */}
+                  <Text style={styles.monteBouquetTagText}>EXPERIÊNCIA INTERATIVA</Text>
+                  <Text style={styles.monteBouquetTitle}>Monte seu bouquet</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={[styles.sectionTag, { color: theme.colors.terracotta }]}>OPORTUNIDADES</Text>
                 <Text style={styles.sectionTitle}>Semana Especial</Text>
               </View>
-              <TouchableOpacity onPress={() => router.push('/promocoes')}> {/* Ajustado para futura tela de promoções */}
+              <TouchableOpacity onPress={() => router.push('/promocoes')}>
                 <Text style={[styles.seeAllText, { color: theme.colors.terracotta }]}>Ver todas</Text>
               </TouchableOpacity>
             </View>
@@ -260,7 +280,6 @@ export default function Index() {
               </>
             )}
 
-            {/* AQUI ESTÁ A ANTIGA PÁGINA DE CATEGORIAS, AGORA NA HOME */}
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={[styles.sectionTag, { color: theme.colors.primary }]}>NAVEGUE POR</Text>
@@ -351,10 +370,22 @@ const styles = StyleSheet.create({
   heroBanner: { marginHorizontal: theme.spacing.margin, marginTop: 20, height: 200, borderRadius: theme.radius.lg, overflow: 'hidden' },
   heroImage: { width: '100%', height: '100%' },
   heroOverlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(62,90,62,0.6)', padding: 20, justifyContent: 'flex-end' },
-  heroTag: { fontFamily: theme.fonts.bodyBold, fontSize: 9, color: theme.colors.primaryFixed, letterSpacing: 1.5, marginBottom: 4 },
+  
+  // COLEÇÃO DE OUTONO BRANCO COMO ESTAVA
+  heroTag: { 
+    fontFamily: theme.fonts.bodyBold, 
+    fontSize: 9, 
+    color: theme.colors.white, 
+    letterSpacing: 1.5, 
+    marginBottom: 6, 
+    textShadowColor: 'rgba(0,0,0,0.3)', 
+    textShadowOffset: { width: 1, height: 1 }, 
+    textShadowRadius: 2 
+  },
+  
   heroTitle: { fontFamily: theme.fonts.title, fontSize: 22, color: theme.colors.white, marginBottom: 12 },
-  heroButton: { backgroundColor: theme.colors.surface, alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  heroButtonText: { fontFamily: theme.fonts.bodyBold, fontSize: 11, color: theme.colors.primary },
+  heroButton: { backgroundColor: 'rgba(255, 255, 255, 0.2)', borderWidth: 1.5, borderColor: theme.colors.white, alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  heroButtonText: { fontFamily: theme.fonts.bodyBold, fontSize: 11, color: theme.colors.white },
 
   chipsScroll: { marginTop: 20, paddingHorizontal: theme.spacing.margin, maxHeight: 40 },
   chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 10, borderWidth: 1.5 },
@@ -400,7 +431,6 @@ const styles = StyleSheet.create({
   gridPrice: { fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.primary },
   gridAddBtn: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
 
-  // ESTILOS DOS CARDS DE CATEGORIA (Trazidos da antiga página)
   categoryGridContainer: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: theme.spacing.margin - 6, justifyContent: 'space-between' },
   categoryCard: { width: '48%', backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, marginBottom: 12, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border },
   categoryImageContainer: { height: 120, width: '100%', position: 'relative' },
@@ -413,6 +443,50 @@ const styles = StyleSheet.create({
   categoryTag: { fontFamily: theme.fonts.bodyBold, fontSize: 8, letterSpacing: 1 },
   categoryName: { fontFamily: theme.fonts.title, fontSize: 14, color: theme.colors.primary, marginBottom: 4 },
   categoryDesc: { fontFamily: theme.fonts.body, fontSize: 10, color: theme.colors.textSecondary, lineHeight: 14 },
+
+  monteBouquetBanner: { 
+    marginHorizontal: theme.spacing.margin, 
+    marginTop: 24,
+    height: 100, 
+    borderRadius: theme.radius.lg, 
+    overflow: 'hidden',
+    borderWidth: 1, 
+    borderColor: theme.colors.border,
+    backgroundColor: '#F5EFE6',
+  },
+  monteBouquetImage: { 
+    width: '100%', 
+    height: '100%',
+  },
+  monteBouquetOverlay: { 
+    position: 'absolute', 
+    top: 0, bottom: 0, left: 0, right: 0, 
+    backgroundColor: 'rgba(230, 123, 160, 0.10)',
+    paddingHorizontal: 16, 
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  
+  // TEXTO MENOR E BRANCO
+  monteBouquetTagText: { 
+    fontFamily: theme.fonts.bodyBold, 
+    fontSize: 8, // Diminuído
+    color: theme.colors.white, 
+    letterSpacing: 1,
+    marginBottom: 2,
+    textShadowColor: 'rgba(0,0,0,0.5)', 
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  monteBouquetTitle: { 
+    fontFamily: theme.fonts.title, 
+    fontSize: 20, 
+    color: theme.colors.white,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
 
   customBanner: { flexDirection: 'row', backgroundColor: theme.colors.primaryFixed, marginHorizontal: theme.spacing.margin, padding: 16, borderRadius: theme.radius.md, marginTop: 12, alignItems: 'center' },
   customIconBox: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
