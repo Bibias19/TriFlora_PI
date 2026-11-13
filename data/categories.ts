@@ -37,7 +37,7 @@ export const categoriesData = [
   },
   {
     id: '5',
-    name: 'Coroa de flores',
+    name: 'Guirlanda de flores',
     description: 'Guirlandas e tiaras florais feitas à mão para celebrações.',
     tag: 'FESTIVIDADES',
     tagColor: '#9B6DBA', // Roxo Lavanda

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, Modal, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, Modal, Keyboard, StyleSheet as RNStyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { theme } from '../../theme';
@@ -11,20 +11,32 @@ const normalizeString = (str: string) => {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 };
 
+const notificationsData = [
+  { id: '1', title: 'Pedido a caminho!', desc: 'Seu bouquet #TF-4891 saiu para entrega.', time: 'Há 5 min', icon: 'local-shipping', color: theme.colors.leafGreen },
+  { id: '2', title: 'Clube TF', desc: 'Você ganhou 50 pontos na sua última compra.', time: 'Há 2 horas', icon: 'loyalty', color: theme.colors.sunflower },
+  { id: '3', title: 'Semana Especial', desc: 'Aproveite 20% OFF na Semana do Girassol.', time: 'Ontem', icon: 'local-offer', color: theme.colors.terracotta },
+  { id: '4', title: 'Boas-vindas!', desc: 'Obrigado por fazer parte da Triflora.', time: 'Há 3 dias', icon: 'spa', color: theme.colors.floralPink },
+];
+
 export default function Index() {
   const params = useLocalSearchParams();
   
   const [searchText, setSearchText] = useState('');
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [activeFilter, setActiveFilter] = useState('Todos');
+  const [isNotifVisible, setIsNotifVisible] = useState(false);
+
+  const getCategoryColor = (categoryName: string) => {
+    const chipColors = [theme.colors.leafGreen, theme.colors.floralPink, theme.colors.sunflower, theme.colors.terracotta, theme.colors.lavender, theme.colors.rosyRed];
+    const index = categoriesData.findIndex(c => c.name === categoryName);
+    return index >= 0 ? chipColors[index % chipColors.length] : theme.colors.primary;
+  };
 
   useEffect(() => {
     if (params.filter) {
       setActiveFilter(params.filter as string);
     }
   }, [params.filter]);
-
-  const filterOptions = ['Todos', ...categoriesData.map(c => c.name)];
 
   const filteredProducts = productsData.filter(product => {
     const normalizedSearch = normalizeString(searchText);
@@ -36,9 +48,10 @@ export default function Index() {
 
   const isSearching = searchText.length > 0;
   const isFiltering = activeFilter !== 'Todos';
+  const activeCategoryColor = getCategoryColor(activeFilter);
 
-  const estacaoProducts = filteredProducts.filter(p => p.category === 'Flores da Estação' || p.category === 'Assinatura Triflora');
-  const gridProducts = filteredProducts.filter(p => p.category !== 'Flores da Estação' && p.category !== 'Assinatura Triflora');
+  const estacaoProducts = filteredProducts.filter(p => p.tags?.includes('Flores da Estação') || p.tags?.includes('Assinatura Triflora'));
+  const gridProducts = filteredProducts.filter(p => !p.tags?.includes('Flores da Estação') && !p.tags?.includes('Assinatura Triflora'));
 
   return (
     <View style={styles.mainContainer}>
@@ -51,7 +64,7 @@ export default function Index() {
             <Text style={styles.greetingSmall}>BOM DIA</Text>
             <Text style={styles.greetingLarge}>Olá, Sofia</Text>
           </View>
-          <TouchableOpacity style={styles.notificationButton}>
+          <TouchableOpacity style={styles.notificationButton} onPress={() => setIsNotifVisible(true)}>
             <MaterialIcons name="notifications" size={22} color={theme.colors.primary} />
             <View style={styles.notificationDot} />
           </TouchableOpacity>
@@ -108,10 +121,9 @@ export default function Index() {
             style={styles.heroImage} 
           />
           <View style={styles.heroOverlay}>
-            {/* COLEÇÃO DE OUTONO BRANCO COMO ESTAVA */}
-            <Text style={styles.heroTag}>COLEÇÃO DE OUTONO</Text>
+            <Text style={styles.heroTag}>COLEÇÃO DE PRIMAVERA</Text>
             <Text style={styles.heroTitle}>Flores que conectam histórias</Text>
-            <TouchableOpacity style={styles.heroButton}>
+            <TouchableOpacity style={styles.heroButton} onPress={() => router.push('/primavera')}>
               <Text style={styles.heroButtonText}>Explorar Coleção</Text>
             </TouchableOpacity>
           </View>
@@ -142,11 +154,11 @@ export default function Index() {
           <View style={{ marginTop: 24 }}>
             <View style={styles.resultsHeader}>
               <TouchableOpacity onPress={() => setActiveFilter('Todos')}>
-                <MaterialIcons name="arrow-back" size={24} color={theme.colors.primary} />
+                <MaterialIcons name="arrow-back" size={24} color={activeCategoryColor} />
               </TouchableOpacity>
               <View style={styles.resultsTitleWrapper}>
-                <Text style={[styles.sectionTag, { color: theme.colors.primary }]}>RESULTADOS</Text>
-                <Text style={styles.sectionTitle}>{activeFilter}</Text>
+                <Text style={[styles.sectionTag, { color: activeCategoryColor }]}>RESULTADOS</Text>
+                <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>{activeFilter}</Text>
               </View>
             </View>
 
@@ -157,11 +169,11 @@ export default function Index() {
                     <View style={styles.gridImageContainer}>
                       <Image source={{ uri: product.image }} style={styles.gridImage} />
                     </View>
-                    <Text style={[styles.gridTag, { color: theme.colors.primary }]}>{product.category.toUpperCase()}</Text>
+                    <Text style={[styles.gridTag, { color: theme.colors.textPrimary }]}>{product.category.toUpperCase()}</Text>
                     <Text style={styles.gridName} numberOfLines={2}>{product.name}</Text>
                     <View style={styles.gridFooter}>
                       <Text style={styles.gridPrice}>R$ {product.price.toFixed(2).replace('.', ',')}</Text>
-                      <View style={[styles.gridAddBtn, { backgroundColor: theme.colors.primary }]}>
+                      <View style={[styles.gridAddBtn, { backgroundColor: activeCategoryColor }]}>
                         <MaterialIcons name="add" size={18} color={theme.colors.white} />
                       </View>
                     </View>
@@ -190,8 +202,11 @@ export default function Index() {
               
               <View style={styles.monteBouquetOverlay}>
                 <View style={{ flex: 1 }}>
-                  {/* TEXTO MENOR E BRANCO */}
-                  <Text style={styles.monteBouquetTagText}>EXPERIÊNCIA INTERATIVA</Text>
+                  {/* TAG CORRIGIDA: VOLTOU A SER DO TAMANHO DO CONTEÚDO */}
+                  <View style={[styles.monteBouquetTag, { backgroundColor: theme.colors.floralPink, alignSelf: 'flex-start' }]}>
+                    <MaterialIcons name="auto-awesome" size={10} color={theme.colors.white} />
+                    <Text style={[styles.monteBouquetTagText, { color: theme.colors.white }]}>EXPERIÊNCIA INTERATIVA</Text>
+                  </View>
                   <Text style={styles.monteBouquetTitle}>Monte seu bouquet</Text>
                 </View>
               </View>
@@ -328,6 +343,41 @@ export default function Index() {
         )}
 
       </ScrollView>
+
+      <Modal visible={isNotifVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={RNStyleSheet.absoluteFill} onPress={() => setIsNotifVisible(false)} activeOpacity={1} />
+          
+          <View style={styles.notificationDropdown}>
+            <View style={styles.notifHeader}>
+              <Text style={styles.notifTitle}>Notificações</Text>
+              <TouchableOpacity onPress={() => setIsNotifVisible(false)}>
+                <MaterialIcons name="close" size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 300 }}>
+              {notificationsData.map((notif) => (
+                <TouchableOpacity 
+                  key={notif.id} 
+                  style={styles.notifItem}
+                  onPress={() => { setIsNotifVisible(false); }}
+                >
+                  <View style={[styles.notifIconBox, { backgroundColor: `${notif.color}20` }]}>
+                    <MaterialIcons name={notif.icon as any} size={20} color={notif.color} />
+                  </View>
+                  <View style={styles.notifContent}>
+                    <Text style={styles.notifItemTitle}>{notif.title}</Text>
+                    <Text style={styles.notifItemDesc} numberOfLines={2}>{notif.desc}</Text>
+                    <Text style={styles.notifItemTime}>{notif.time}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -341,6 +391,32 @@ const styles = StyleSheet.create({
   greetingLarge: { fontFamily: theme.fonts.title, fontSize: 24, color: theme.colors.primary },
   notificationButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border },
   notificationDot: { position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.rosyRed },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
+  notificationDropdown: {
+    position: 'absolute',
+    top: 80,
+    right: theme.spacing.margin,
+    width: 300,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  notifHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.surfaceContainer },
+  notifTitle: { fontFamily: theme.fonts.title, fontSize: 16, color: theme.colors.primary },
+  notifItem: { flexDirection: 'row', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.surfaceContainer },
+  notifIconBox: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  notifContent: { flex: 1 },
+  notifItemTitle: { fontFamily: theme.fonts.bodyBold, fontSize: 13, color: theme.colors.primary, marginBottom: 2 },
+  notifItemDesc: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.textSecondary, lineHeight: 16 },
+  notifItemTime: { fontFamily: theme.fonts.body, fontSize: 10, color: theme.colors.textOutline, marginTop: 4 },
 
   searchWrapper: { position: 'relative', zIndex: 10, marginTop: 12 },
   searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, marginHorizontal: theme.spacing.margin, paddingHorizontal: 16, height: 50, borderRadius: 25, borderWidth: 1, borderColor: theme.colors.border },
@@ -358,31 +434,10 @@ const styles = StyleSheet.create({
   noResultsBox: { flexDirection: 'row', alignItems: 'center', padding: 16 },
   noResultsText: { fontFamily: theme.fonts.bodyMedium, fontSize: 13, color: theme.colors.error, marginLeft: 8 },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: theme.colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: '80%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  modalTitle: { fontFamily: theme.fonts.title, fontSize: 20, color: theme.colors.primary },
-  filterOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.surfaceContainer },
-  filterOptionActive: { backgroundColor: 'rgba(62,90,62,0.05)', borderRadius: 8, paddingHorizontal: 12 },
-  filterOptionText: { fontFamily: theme.fonts.bodyMedium, fontSize: 14, color: theme.colors.textSecondary },
-  filterOptionTextActive: { fontFamily: theme.fonts.bodyBold, color: theme.colors.primary },
-
   heroBanner: { marginHorizontal: theme.spacing.margin, marginTop: 20, height: 200, borderRadius: theme.radius.lg, overflow: 'hidden' },
   heroImage: { width: '100%', height: '100%' },
   heroOverlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(62,90,62,0.6)', padding: 20, justifyContent: 'flex-end' },
-  
-  // COLEÇÃO DE OUTONO BRANCO COMO ESTAVA
-  heroTag: { 
-    fontFamily: theme.fonts.bodyBold, 
-    fontSize: 9, 
-    color: theme.colors.white, 
-    letterSpacing: 1.5, 
-    marginBottom: 6, 
-    textShadowColor: 'rgba(0,0,0,0.3)', 
-    textShadowOffset: { width: 1, height: 1 }, 
-    textShadowRadius: 2 
-  },
-  
+  heroTag: { fontFamily: theme.fonts.bodyBold, fontSize: 9, color: theme.colors.white, letterSpacing: 1.5, marginBottom: 6 },
   heroTitle: { fontFamily: theme.fonts.title, fontSize: 22, color: theme.colors.white, marginBottom: 12 },
   heroButton: { backgroundColor: 'rgba(255, 255, 255, 0.2)', borderWidth: 1.5, borderColor: theme.colors.white, alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
   heroButtonText: { fontFamily: theme.fonts.bodyBold, fontSize: 11, color: theme.colors.white },
@@ -444,49 +499,12 @@ const styles = StyleSheet.create({
   categoryName: { fontFamily: theme.fonts.title, fontSize: 14, color: theme.colors.primary, marginBottom: 4 },
   categoryDesc: { fontFamily: theme.fonts.body, fontSize: 10, color: theme.colors.textSecondary, lineHeight: 14 },
 
-  monteBouquetBanner: { 
-    marginHorizontal: theme.spacing.margin, 
-    marginTop: 24,
-    height: 100, 
-    borderRadius: theme.radius.lg, 
-    overflow: 'hidden',
-    borderWidth: 1, 
-    borderColor: theme.colors.border,
-    backgroundColor: '#F5EFE6',
-  },
-  monteBouquetImage: { 
-    width: '100%', 
-    height: '100%',
-  },
-  monteBouquetOverlay: { 
-    position: 'absolute', 
-    top: 0, bottom: 0, left: 0, right: 0, 
-    backgroundColor: 'rgba(230, 123, 160, 0.10)',
-    paddingHorizontal: 16, 
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
-  },
-  
-  // TEXTO MENOR E BRANCO
-  monteBouquetTagText: { 
-    fontFamily: theme.fonts.bodyBold, 
-    fontSize: 8, // Diminuído
-    color: theme.colors.white, 
-    letterSpacing: 1,
-    marginBottom: 2,
-    textShadowColor: 'rgba(0,0,0,0.5)', 
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  monteBouquetTitle: { 
-    fontFamily: theme.fonts.title, 
-    fontSize: 20, 
-    color: theme.colors.white,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-  },
+  monteBouquetBanner: { marginHorizontal: theme.spacing.margin, marginTop: 24, height: 100, borderRadius: theme.radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border, backgroundColor: '#F5EFE6' },
+  monteBouquetImage: { width: '100%', height: '100%' },
+  monteBouquetOverlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(230, 123, 160, 0.10)', paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  monteBouquetTag: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, marginBottom: 6 },
+  monteBouquetTagText: { fontFamily: theme.fonts.bodyBold, fontSize: 8, marginLeft: 4 },
+  monteBouquetTitle: { fontFamily: theme.fonts.title, fontSize: 20, color: theme.colors.white, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 3 },
 
   customBanner: { flexDirection: 'row', backgroundColor: theme.colors.primaryFixed, marginHorizontal: theme.spacing.margin, padding: 16, borderRadius: theme.radius.md, marginTop: 12, alignItems: 'center' },
   customIconBox: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
