@@ -1,24 +1,57 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { theme } from '../theme';
 import { Header } from '../components/Header';
 import { useCart } from '../context/CartContext';
-import { flowersData, foliageData } from '../data/bouquetData';
+import { flowersData, foliageData, finishingOptions } from '../data/bouquetData';
 
 export default function MonteBouquet() {
   const { addItem } = useCart();
   const [step, setStep] = useState(1);
 
-  const [quantities, setQuantities] = useState<Record<string, number>>({
-    lirio: 2, girassol: 3, peonia: 2, tulipa: 1
-  });
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [selectedFoliage, setSelectedFoliage] = useState<string[]>([]);
   const [selectedPackaging, setSelectedPackaging] = useState('kraft');
+  const [selectedFinishing, setSelectedFinishing] = useState<string>('corte_v');
+  
+  const [showRecommendationWarning, setShowRecommendationWarning] = useState(false);
+  const [showMaxWarning, setShowMaxWarning] = useState(false);
+  const [showMinWarning, setShowMinWarning] = useState(false);
+
+  useEffect(() => {
+    const total = Object.values(quantities).reduce((acc, qty) => acc + qty, 0);
+    
+    if (total === 12) {
+      setShowRecommendationWarning(true);
+    } else if (total > 12) {
+      setShowRecommendationWarning(false);
+    }
+    
+    if (total === 20) {
+      setShowMaxWarning(true);
+    } else if (total < 20) {
+      setShowMaxWarning(false);
+    }
+
+    // Controle do aviso de mínimo
+    if (total < 2) {
+      setShowMinWarning(true);
+    } else {
+      setShowMinWarning(false);
+    }
+  }, [quantities]);
 
   const updateQuantity = (id: string, delta: number) => {
-    setQuantities(prev => ({ ...prev, [id]: Math.max(0, (prev[id] || 0) + delta) }));
+    const currentTotal = Object.values(quantities).reduce((acc, qty) => acc + qty, 0);
+    if (delta > 0 && currentTotal >= 20) {
+      return; 
+    }
+    setQuantities(prev => ({
+      ...prev,
+      [id]: Math.max(0, (prev[id] || 0) + delta)
+    }));
   };
 
   const toggleFoliage = (id: string) => {
@@ -27,7 +60,23 @@ export default function MonteBouquet() {
     );
   };
 
+  const handleNextStep = () => {
+    const totalStems = Object.values(quantities).reduce((acc, qty) => acc + qty, 0);
+    
+    // REGRA: Só passa para a próxima etapa se tiver no mínimo 2 hastes
+    if (step === 1 && totalStems < 2) {
+      Alert.alert(
+        "Atenção",
+        "Selecione pelo menos 2 hastes para montar um arranjo. Se for apenas 1 flor, isso é uma flor unitária.",
+        [{ text: "Entendi" }]
+      );
+      return;
+    }
+    setStep(step + 1);
+  };
+
   const totalStems = Object.values(quantities).reduce((acc, qty) => acc + qty, 0);
+  const progressPercent = Math.min(100, Math.round((totalStems / 12) * 100));
 
   let basePrice = 0;
   flowersData.forEach(flower => {
@@ -52,31 +101,70 @@ export default function MonteBouquet() {
       image: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?q=80&w=400&auto=format&fit=crop',
       type: 'custom_bouquet'
     });
-    router.push('/carrinho');
+    router.push('/(tabs)/carrinho');
   };
 
   const renderStep1 = () => (
     <View style={styles.sectionContainer}>
       <Text style={styles.sectionTitle}>Flores Principais</Text>
-      <Text style={styles.sectionSubtitle}>Selecione os protagonistas do seu arranjo</Text>
-      {flowersData.map(flower => (
-        <View key={flower.id} style={styles.flowerCard}>
-          <Image source={{ uri: flower.image }} style={styles.flowerImage} />
-          <View style={styles.flowerInfo}>
-            <Text style={styles.flowerName}>{flower.name}</Text>
-            <Text style={styles.flowerPrice}>R$ {flower.price.toFixed(2).replace('.', ',')} <Text style={styles.perStem}>/ haste</Text></Text>
+      <Text style={styles.sectionSubtitle}>Selecione as flores do seu arranjo (mín. 2, máx. 20 hastes)</Text>
+      
+      {flowersData.map(flower => {
+        const qty = quantities[flower.id] || 0;
+        const isMaxReached = totalStems >= 20;
+
+        return (
+          <View key={flower.id} style={styles.flowerCard}>
+            <Image source={{ uri: flower.image }} style={styles.flowerImage} />
+            <View style={styles.flowerInfo}>
+              <Text style={styles.flowerName}>{flower.name}</Text>
+              <Text style={styles.flowerPrice}>R$ {flower.price.toFixed(2).replace('.', ',')} <Text style={styles.perStem}>/ haste</Text></Text>
+            </View>
+            <View style={styles.counterContainer}>
+              <TouchableOpacity 
+                style={styles.counterButton} 
+                onPress={() => updateQuantity(flower.id, -1)}
+              >
+                <MaterialIcons name="remove" size={18} color={theme.colors.white} />
+              </TouchableOpacity>
+              <Text style={styles.counterText}>{qty}</Text>
+              <TouchableOpacity 
+                style={[styles.counterButton, isMaxReached && styles.counterButtonDisabled]} 
+                onPress={() => updateQuantity(flower.id, 1)}
+                disabled={isMaxReached}
+              >
+                <MaterialIcons name="add" size={18} color={theme.colors.white} />
+              </TouchableOpacity>
+            </View>
           </View>
-          <View style={styles.counterContainer}>
-            <TouchableOpacity style={styles.counterButton} onPress={() => updateQuantity(flower.id, -1)}>
-              <MaterialIcons name="remove" size={18} color={theme.colors.white} />
-            </TouchableOpacity>
-            <Text style={styles.counterText}>{quantities[flower.id] || 0}</Text>
-            <TouchableOpacity style={styles.counterButton} onPress={() => updateQuantity(flower.id, 1)}>
-              <MaterialIcons name="add" size={18} color={theme.colors.white} />
-            </TouchableOpacity>
-          </View>
+        );
+      })}
+
+      <View style={styles.finishingWrapper}>
+        <View style={styles.finishingHeader}>
+          <MaterialIcons name="content-cut" size={20} color={theme.colors.primary} />
+          <Text style={styles.finishingTitle}>Acabamento da Haste</Text>
         </View>
-      ))}
+        <Text style={styles.finishingSubtitle}>Escolha como preparar as flores</Text>
+        
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.finishingScroll}>
+          {finishingOptions.map(opt => {
+            const isSelected = selectedFinishing === opt.id;
+            return (
+              <TouchableOpacity 
+                key={opt.id} 
+                style={[styles.finishingChip, isSelected && styles.finishingChipActive]}
+                onPress={() => setSelectedFinishing(opt.id)}
+              >
+                {isSelected && <MaterialIcons name="check" size={14} color={theme.colors.white} />}
+                <Text style={[styles.finishingChipText, isSelected && styles.finishingChipTextActive]}>
+                  {opt.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
     </View>
   );
 
@@ -85,7 +173,12 @@ export default function MonteBouquet() {
       <Text style={styles.sectionTitle}>Folhagens</Text>
       <Text style={styles.sectionSubtitle}>Adicione textura e frescor natural ao buquê</Text>
       
-      {/* Grid 2x2 de Folhagens */}
+      {/* AVISO DE FOLHAGEM OPCIONAL */}
+      <View style={styles.infoBox}>
+        <MaterialIcons name="info-outline" size={18} color={theme.colors.primary} />
+        <Text style={styles.infoText}>Se você quiser sem folhagem, basta clicar em Avançar.</Text>
+      </View>
+
       <View style={styles.foliageGrid}>
         {foliageData.map(foliage => {
           const isSelected = selectedFoliage.includes(foliage.id);
@@ -95,9 +188,7 @@ export default function MonteBouquet() {
               style={[styles.foliageCard, isSelected && styles.foliageCardActive]}
               onPress={() => toggleFoliage(foliage.id)}
             >
-              <View style={styles.foliageIcon}>
-                <MaterialIcons name="eco" size={32} color={isSelected ? theme.colors.primary : theme.colors.textOutline} />
-              </View>
+              <Image source={{ uri: foliage.image }} style={styles.foliageImage} />
               <Text style={styles.foliageName}>{foliage.name}</Text>
               <Text style={styles.foliagePrice}>+ R$ {foliage.price.toFixed(2).replace('.', ',')}</Text>
             </TouchableOpacity>
@@ -170,7 +261,7 @@ export default function MonteBouquet() {
         <View style={styles.visualPanel}>
           <View style={styles.stemCounter}>
             <MaterialIcons name="local-florist" size={16} color={theme.colors.primary} />
-            <Text style={styles.stemCounterText}>{totalStems} hastes selecionadas</Text>
+            <Text style={styles.stemCounterText}>{totalStems} / 20 hastes máximas</Text>
           </View>
           
           <View style={styles.imageHalo}>
@@ -190,6 +281,31 @@ export default function MonteBouquet() {
               return <View key={flower.id} style={{ width: `${width}%`, height: '100%', backgroundColor: flower.color }} />;
             })}
           </View>
+          <View style={styles.progressLabels}>
+            <Text style={styles.progressLabelText}>Volume do buquê</Text>
+            <Text style={styles.progressLabelText}>{progressPercent}%</Text>
+          </View>
+
+          {showMinWarning && (
+            <View style={[styles.warningBox, { backgroundColor: 'rgba(186, 26, 26, 0.1)', borderColor: theme.colors.error }]}>
+              <MaterialIcons name="error-outline" size={16} color={theme.colors.error} />
+              <Text style={[styles.warningText, { color: theme.colors.error }]}>Selecione no mínimo 2 hastes para avançar.</Text>
+            </View>
+          )}
+
+          {showRecommendationWarning && (
+            <View style={styles.warningBox}>
+              <MaterialIcons name="info-outline" size={16} color={theme.colors.terracotta} />
+              <Text style={styles.warningText}>Você atingiu o número recomendado de 12 hastes. Deseja continuar adicionando?</Text>
+            </View>
+          )}
+
+          {showMaxWarning && (
+            <View style={[styles.warningBox, { backgroundColor: 'rgba(186, 26, 26, 0.15)' }]}>
+              <MaterialIcons name="error-outline" size={16} color={theme.colors.error} />
+              <Text style={[styles.warningText, { color: theme.colors.error, fontFamily: theme.fonts.bodyBold }]}>Máximo de 20 hastes atingido.</Text>
+            </View>
+          )}
         </View>
 
         {step === 1 && renderStep1()}
@@ -205,7 +321,7 @@ export default function MonteBouquet() {
         </View>
         
         {step < 3 ? (
-          <TouchableOpacity style={styles.advanceButton} onPress={() => setStep(step + 1)}>
+          <TouchableOpacity style={styles.advanceButton} onPress={handleNextStep}>
             <Text style={styles.advanceButtonText}>Avançar</Text>
             <MaterialIcons name="arrow-forward" size={20} color={theme.colors.white} />
           </TouchableOpacity>
@@ -221,95 +337,419 @@ export default function MonteBouquet() {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: theme.colors.background },
-  scrollContent: { paddingBottom: 100 },
+  mainContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
   
-  stepperContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginVertical: 16, paddingHorizontal: 20 },
-  stepRow: { flexDirection: 'row', alignItems: 'center' },
-  stepActive: { width: 24, height: 24, borderRadius: 12, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center' },
-  stepTextActive: { color: theme.colors.white, fontSize: 12, fontFamily: theme.fonts.bodyBold },
-  stepLabelActive: { fontFamily: theme.fonts.bodyBold, fontSize: 12, color: theme.colors.primary, marginLeft: 6 },
-  stepLine: { flex: 1, height: 2, backgroundColor: theme.colors.border, marginHorizontal: 8 },
-  stepLineActive: { backgroundColor: theme.colors.primary },
-  stepInactive: { width: 24, height: 24, borderRadius: 12, backgroundColor: theme.colors.surfaceContainer, justifyContent: 'center', alignItems: 'center' },
-  stepTextInactive: { color: theme.colors.textOutline, fontSize: 12, fontFamily: theme.fonts.bodyBold },
-  stepLabel: { fontFamily: theme.fonts.bodyMedium, fontSize: 12, color: theme.colors.textOutline, marginLeft: 6 },
+  stepperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 16,
+    paddingHorizontal: 20,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  stepActive: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepTextActive: {
+    color: theme.colors.white,
+    fontSize: 12,
+    fontFamily: theme.fonts.bodyBold,
+  },
+  stepLabelActive: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 12,
+    color: theme.colors.primary,
+    marginLeft: 6,
+  },
+  stepLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: theme.colors.border,
+    marginHorizontal: 8,
+  },
+  stepLineActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  stepInactive: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.colors.surfaceContainer,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepTextInactive: {
+    color: theme.colors.textOutline,
+    fontSize: 12,
+    fontFamily: theme.fonts.bodyBold,
+  },
+  stepLabel: {
+    fontFamily: theme.fonts.bodyMedium,
+    fontSize: 12,
+    color: theme.colors.textOutline,
+    marginLeft: 6,
+  },
 
-  visualPanel: { backgroundColor: theme.colors.surface, marginHorizontal: theme.spacing.margin, borderRadius: theme.radius.lg, padding: 20, alignItems: 'center', marginBottom: 24 },
-  stemCounter: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.primaryFixed, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginBottom: 16 },
-  stemCounterText: { fontFamily: theme.fonts.bodyBold, fontSize: 12, color: theme.colors.primary, marginLeft: 6 },
-  imageHalo: { width: 120, height: 120, borderRadius: 60, backgroundColor: theme.colors.surfaceContainer, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  bouquetImage: { width: 100, height: 100, borderRadius: 50 },
-  bouquetTitle: { fontFamily: theme.fonts.title, fontSize: 20, color: theme.colors.primary, marginBottom: 16 },
-  progressBarContainer: { width: '100%', height: 8, borderRadius: 4, backgroundColor: theme.colors.surfaceContainer, flexDirection: 'row', overflow: 'hidden' },
+  visualPanel: {
+    backgroundColor: theme.colors.surface,
+    marginHorizontal: theme.spacing.margin,
+    borderRadius: theme.radius.lg,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  stemCounter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primaryFixed,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  stemCounterText: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 12,
+    color: theme.colors.primary,
+    marginLeft: 6,
+  },
+  imageHalo: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: theme.colors.surfaceContainer,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  bouquetImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  bouquetTitle: {
+    fontFamily: theme.fonts.title,
+    fontSize: 20,
+    color: theme.colors.primary,
+    marginBottom: 16,
+  },
+  progressBarContainer: {
+    width: '100%',
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.colors.surfaceContainer,
+    flexDirection: 'row',
+    overflow: 'hidden',
+  },
+  progressLabels: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  progressLabelText: {
+    fontFamily: theme.fonts.bodyMedium,
+    fontSize: 10,
+    color: theme.colors.textSecondary,
+  },
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(240, 122, 58, 0.15)',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: theme.colors.terracotta,
+  },
+  warningText: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 12,
+    color: theme.colors.terracotta,
+    marginLeft: 6,
+    flex: 1,
+  },
 
-  sectionContainer: { paddingHorizontal: theme.spacing.margin, marginBottom: 24 },
-  sectionTitle: { fontFamily: theme.fonts.title, fontSize: 20, color: theme.colors.primary },
-  sectionSubtitle: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.textSecondary, marginBottom: 12 },
+  sectionContainer: {
+    paddingHorizontal: theme.spacing.margin,
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontFamily: theme.fonts.title,
+    fontSize: 20,
+    color: theme.colors.primary,
+  },
+  sectionSubtitle: {
+    fontFamily: theme.fonts.body,
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginBottom: 12,
+  },
   
-  flowerCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, padding: 12, borderRadius: theme.radius.md, marginBottom: 10 },
-  flowerImage: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
-  flowerInfo: { flex: 1 },
-  flowerName: { fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.primary },
-  flowerPrice: { fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.primary, marginTop: 2 },
-  perStem: { fontFamily: theme.fonts.body, fontSize: 10, color: theme.colors.textOutline },
-  counterContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surfaceContainer, borderRadius: 20, padding: 4 },
-  counterButton: { width: 28, height: 28, borderRadius: 14, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center' },
-  counterText: { fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.primary, width: 24, textAlign: 'center' },
+  flowerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    padding: 12,
+    borderRadius: theme.radius.md,
+    marginBottom: 10,
+  },
+  flowerImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+  },
+  flowerInfo: {
+    flex: 1,
+  },
+  flowerName: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 14,
+    color: theme.colors.primary,
+  },
+  flowerPrice: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 14,
+    color: theme.colors.primary,
+    marginTop: 2,
+  },
+  perStem: {
+    fontFamily: theme.fonts.body,
+    fontSize: 10,
+    color: theme.colors.textOutline,
+  },
+  counterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceContainer,
+    borderRadius: 20,
+    padding: 4,
+  },
+  counterButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  counterButtonDisabled: {
+    backgroundColor: theme.colors.textOutline,
+    opacity: 0.5,
+  },
+  counterText: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 14,
+    color: theme.colors.primary,
+    width: 24,
+    textAlign: 'center',
+  },
 
-  /* ESTILOS DO GRID DE FOLHAGENS */
+  finishingWrapper: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    padding: 16,
+    marginTop: 24,
+  },
+  finishingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  finishingTitle: {
+    fontFamily: theme.fonts.title,
+    fontSize: 18,
+    color: theme.colors.primary,
+    marginLeft: 8,
+  },
+  finishingSubtitle: {
+    fontFamily: theme.fonts.body,
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginBottom: 12,
+  },
+  finishingScroll: {
+    marginLeft: -4,
+  },
+  finishingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  finishingChipActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  finishingChipText: {
+    fontFamily: theme.fonts.bodyMedium,
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+  },
+  finishingChipTextActive: {
+    color: theme.colors.white,
+    fontFamily: theme.fonts.bodyBold,
+  },
+
+  // AVISO DE FOLHAGEM OPCIONAL
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(62, 90, 62, 0.1)',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(62, 90, 62, 0.3)',
+  },
+  infoText: {
+    fontFamily: theme.fonts.bodyMedium,
+    fontSize: 12,
+    color: theme.colors.primary,
+    marginLeft: 8,
+    flex: 1,
+  },
+
   foliageGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginTop: 12,
   },
-  foliageCard: { 
-    width: '48%', // Ocupa quase metade da tela
-    backgroundColor: theme.colors.surface, 
-    padding: 16, 
-    borderRadius: theme.radius.md, 
-    alignItems: 'center', 
-    borderWidth: 2, 
+  foliageCard: {
+    width: '48%',
+    backgroundColor: theme.colors.surface,
+    padding: 12,
+    borderRadius: theme.radius.md,
+    alignItems: 'center',
+    borderWidth: 2,
     borderColor: 'transparent',
-    marginBottom: 12
+    marginBottom: 12,
   },
-  foliageCardActive: { 
-    borderColor: theme.colors.primary, 
-    backgroundColor: theme.colors.surfaceContainer 
+  foliageCardActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surfaceContainer,
   },
-  foliageIcon: { 
-    width: 64, 
-    height: 64, 
-    borderRadius: 32, 
-    backgroundColor: theme.colors.background, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginBottom: 12 
+  foliageImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: 8,
   },
-  foliageName: { 
-    fontFamily: theme.fonts.bodyBold, 
-    fontSize: 13, 
-    color: theme.colors.primary, 
+  foliageName: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 12,
+    color: theme.colors.primary,
     textAlign: 'center',
-    marginBottom: 4
+    marginBottom: 4,
   },
-  foliagePrice: { 
-    fontFamily: theme.fonts.bodyBold, 
-    fontSize: 12, 
-    color: theme.colors.secondary 
+  foliagePrice: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 11,
+    color: theme.colors.secondary,
   },
 
-  packagingCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, padding: 16, borderRadius: theme.radius.md, marginBottom: 12, borderWidth: 2, borderColor: 'transparent' },
-  packagingCardActive: { borderColor: theme.colors.primary, backgroundColor: theme.colors.surfaceContainer },
-  packagingName: { fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.primary },
-  packagingDesc: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
-  packagingPrice: { fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.primary },
+  packagingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    padding: 16,
+    borderRadius: theme.radius.md,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  packagingCardActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surfaceContainer,
+  },
+  packagingName: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 14,
+    color: theme.colors.primary,
+  },
+  packagingDesc: {
+    fontFamily: theme.fonts.body,
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  packagingPrice: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 14,
+    color: theme.colors.primary,
+  },
 
-  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: theme.colors.surface, flexDirection: 'row', padding: 16, paddingBottom: 24, borderTopWidth: 1, borderTopColor: theme.colors.border, alignItems: 'center', justifyContent: 'space-between' },
-  totalLabel: { fontFamily: theme.fonts.bodyBold, fontSize: 10, color: theme.colors.textSecondary, letterSpacing: 1 },
-  totalPrice: { fontFamily: theme.fonts.title, fontSize: 24, color: theme.colors.primary },
-  advanceButton: { flexDirection: 'row', backgroundColor: theme.colors.primary, height: 48, paddingHorizontal: 24, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-  finishButton: { flexDirection: 'row', backgroundColor: theme.colors.secondary, height: 48, paddingHorizontal: 24, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-  advanceButtonText: { fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.white, marginRight: 8, textTransform: 'uppercase' },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: theme.colors.surface,
+    flexDirection: 'row',
+    padding: 16,
+    paddingBottom: 24,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  totalLabel: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 10,
+    color: theme.colors.textSecondary,
+    letterSpacing: 1,
+  },
+  totalPrice: {
+    fontFamily: theme.fonts.title,
+    fontSize: 24,
+    color: theme.colors.primary,
+  },
+  advanceButton: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.primary,
+    height: 48,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  finishButton: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.secondary,
+    height: 48,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  advanceButtonText: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 14,
+    color: theme.colors.white,
+    marginRight: 8,
+    textTransform: 'uppercase',
+  },
 });

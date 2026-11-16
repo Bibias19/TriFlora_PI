@@ -6,6 +6,7 @@ import { theme } from '../../theme';
 import { Header } from '../../components/Header';
 import { productsData } from '../../data/products';
 import { categoriesData } from '../../data/categories';
+import { useCart } from '../../context/CartContext';
 
 const normalizeString = (str: string) => {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -20,6 +21,7 @@ const notificationsData = [
 
 export default function Index() {
   const params = useLocalSearchParams();
+  const { addItem } = useCart();
   
   const [searchText, setSearchText] = useState('');
   const [isFilterVisible, setIsFilterVisible] = useState(false);
@@ -50,8 +52,8 @@ export default function Index() {
   const isFiltering = activeFilter !== 'Todos';
   const activeCategoryColor = getCategoryColor(activeFilter);
 
-  const estacaoProducts = filteredProducts.filter(p => p.tags?.includes('Flores da Estação') || p.tags?.includes('Assinatura Triflora'));
-  const gridProducts = filteredProducts.filter(p => !p.tags?.includes('Flores da Estação') && !p.tags?.includes('Assinatura Triflora'));
+  const recomendacoesProducts = filteredProducts.filter(p => p.tags?.includes('Recomendações'));
+  const maisVendidosProducts = filteredProducts.filter(p => p.tags?.includes('Mais Vendidos'));
 
   return (
     <View style={styles.mainContainer}>
@@ -202,7 +204,6 @@ export default function Index() {
               
               <View style={styles.monteBouquetOverlay}>
                 <View style={{ flex: 1 }}>
-                  {/* TAG CORRIGIDA: VOLTOU A SER DO TAMANHO DO CONTEÚDO */}
                   <View style={[styles.monteBouquetTag, { backgroundColor: theme.colors.floralPink, alignSelf: 'flex-start' }]}>
                     <MaterialIcons name="auto-awesome" size={10} color={theme.colors.white} />
                     <Text style={[styles.monteBouquetTagText, { color: theme.colors.white }]}>EXPERIÊNCIA INTERATIVA</Text>
@@ -237,28 +238,34 @@ export default function Index() {
               <Image source={{ uri: 'https://images.unsplash.com/photo-1595124350361-193a200f7308?q=80&w=400&auto=format&fit=crop' }} style={styles.promoImage} />
             </View>
 
-            {estacaoProducts.length > 0 && (
+            {recomendacoesProducts.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
                   <View>
-                    <Text style={[styles.sectionTag, { color: theme.colors.floralPink }]}>COLHEITA MATINAL</Text>
-                    <Text style={styles.sectionTitle}>Flores da Estação</Text>
+                    <Text style={[styles.sectionTag, { color: theme.colors.floralPink }]}>SELEÇÃO ESPECIAL</Text>
+                    <Text style={styles.sectionTitle}>Recomendações</Text>
                   </View>
-                  <TouchableOpacity onPress={() => setActiveFilter('Flores da Estação')}>
+                  <TouchableOpacity onPress={() => router.push('/recomendacoes')}>
                     <Text style={[styles.seeAllText, { color: theme.colors.floralPink }]}>Ver todas</Text>
                   </TouchableOpacity>
                 </View>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                  {estacaoProducts.map((product) => (
+                  {recomendacoesProducts.map((product) => (
                     <TouchableOpacity key={product.id} style={styles.productCard} onPress={() => router.push(`/produto/${product.id}`)}>
                       <Image source={{ uri: product.image }} style={styles.productImage} />
-                      <Text style={styles.productName}>{product.name}</Text>
+                      <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
                       <View style={styles.productFooter}>
                         <Text style={styles.productPrice}>R$ {product.price.toFixed(2).replace('.', ',')}</Text>
-                        <View style={[styles.addButton, { backgroundColor: theme.colors.floralPink }]}>
+                        <TouchableOpacity 
+                          style={[styles.addButton, { backgroundColor: theme.colors.floralPink }]}
+                          onPress={() => {
+                            addItem({ id: product.id, name: product.name, price: product.price, image: product.image, type: 'product' });
+                            router.push('/(tabs)/carrinho');
+                          }}
+                        >
                           <MaterialIcons name="add" size={20} color={theme.colors.white} />
-                        </View>
+                        </TouchableOpacity>
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -266,28 +273,34 @@ export default function Index() {
               </>
             )}
 
-            {gridProducts.length > 0 && (
+            {maisVendidosProducts.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
                   <View>
                     <Text style={[styles.sectionTag, { color: theme.colors.rosyRed }]}>FAVORITOS DA CASA</Text>
                     <Text style={styles.sectionTitle}>Mais Vendidos</Text>
                   </View>
-                  <TouchableOpacity onPress={() => setActiveFilter('Mais Vendidos')}>
+                  <TouchableOpacity onPress={() => router.push('/mais-vendidos')}>
                     <Text style={[styles.seeAllText, { color: theme.colors.rosyRed }]}>Ver todos</Text>
                   </TouchableOpacity>
                 </View>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                  {gridProducts.map((product) => (
+                  {maisVendidosProducts.map((product) => (
                     <TouchableOpacity key={product.id} style={styles.productCard} onPress={() => router.push(`/produto/${product.id}`)}>
                       <Image source={{ uri: product.image }} style={styles.productImage} />
-                      <Text style={styles.productName}>{product.name}</Text>
+                      <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
                       <View style={styles.productFooter}>
                         <Text style={styles.productPrice}>R$ {product.price.toFixed(2).replace('.', ',')}</Text>
-                        <View style={[styles.addButton, { backgroundColor: theme.colors.rosyRed }]}>
+                        <TouchableOpacity 
+                          style={[styles.addButton, { backgroundColor: theme.colors.rosyRed }]}
+                          onPress={() => {
+                            addItem({ id: product.id, name: product.name, price: product.price, image: product.image, type: 'product' });
+                            router.push('/(tabs)/carrinho');
+                          }}
+                        >
                           <MaterialIcons name="add" size={20} color={theme.colors.white} />
-                        </View>
+                        </TouchableOpacity>
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -327,18 +340,21 @@ export default function Index() {
               ))}
             </View>
 
-            <View style={styles.customBanner}>
-              <View style={[styles.customIconBox, { backgroundColor: theme.colors.lavender }]}>
-                <MaterialIcons name="local-florist" size={24} color={theme.colors.white} />
+            {/* CARD "DESEJA UM ARRANJO SOB MEDIDA?" - FUNDO VERDE CLARO, ÍCONE VERDE SUAVE E TEXTO VERDE ESCURO */}
+            <TouchableOpacity style={styles.customBanner} onPress={() => router.push('/especialistas')}>
+              <View style={[styles.customIconBox, { backgroundColor: theme.colors.leafGreen }]}>
+                <MaterialIcons name="support-agent" size={24} color={theme.colors.white} />
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={styles.customTitle}>Deseja um arranjo sob medida?</Text>
-                <Text style={styles.customDesc}>Nossos floristas parceiros criam uma composição exclusiva.</Text>
-                <TouchableOpacity onPress={() => router.push('/monte-bouquet')}>
-                  <Text style={[styles.customLink, { color: theme.colors.lavender }]}>Iniciar consultoria floral →</Text>
+                <Text style={styles.customDesc}>
+                  Nossos floristas parceiros criam uma composição exclusiva.
+                </Text>
+                <TouchableOpacity onPress={() => router.push('/especialistas')}>
+                  <Text style={[styles.customLink, { color: theme.colors.primary }]}>Falar com um especialista →</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           </>
         )}
 
@@ -468,10 +484,19 @@ const styles = StyleSheet.create({
   promoImage: { width: 90, height: 90, borderRadius: theme.radius.md, marginLeft: 16 },
 
   horizontalScroll: { paddingLeft: theme.spacing.margin, marginBottom: 12 },
-  productCard: { width: 140, marginRight: 16, backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, padding: 10, borderWidth: 1, borderColor: theme.colors.border },
-  productImage: { width: '100%', height: 120, borderRadius: theme.radius.sm, marginBottom: 8 },
-  productName: { fontFamily: theme.fonts.bodyMedium, fontSize: 13, color: theme.colors.primary },
-  productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
+  productCard: { 
+    width: 140, 
+    height: 230, 
+    marginRight: 16, 
+    backgroundColor: theme.colors.surface, 
+    borderRadius: theme.radius.md, 
+    padding: 10, 
+    borderWidth: 1, 
+    borderColor: theme.colors.border 
+  },
+  productImage: { width: '100%', height: 110, borderRadius: theme.radius.sm, marginBottom: 8 },
+  productName: { fontFamily: theme.fonts.bodyMedium, fontSize: 12, color: theme.colors.primary, flex: 1, marginBottom: 4 },
+  productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' },
   productPrice: { fontFamily: theme.fonts.bodyBold, fontSize: 13, color: theme.colors.primary },
   addButton: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
 
@@ -506,9 +531,39 @@ const styles = StyleSheet.create({
   monteBouquetTagText: { fontFamily: theme.fonts.bodyBold, fontSize: 8, marginLeft: 4 },
   monteBouquetTitle: { fontFamily: theme.fonts.title, fontSize: 20, color: theme.colors.white, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 3 },
 
-  customBanner: { flexDirection: 'row', backgroundColor: theme.colors.primaryFixed, marginHorizontal: theme.spacing.margin, padding: 16, borderRadius: theme.radius.md, marginTop: 12, alignItems: 'center' },
-  customIconBox: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
-  customTitle: { fontFamily: theme.fonts.title, fontSize: 15, color: theme.colors.primary },
-  customDesc: { fontFamily: theme.fonts.body, fontSize: 11, color: theme.colors.textSecondary, marginTop: 4, lineHeight: 15 },
-  customLink: { fontFamily: theme.fonts.bodyBold, fontSize: 11, marginTop: 8 },
+  // CARD "DESEJA UM ARRANJO SOB MEDIDA?" - FUNDO VERDE CLARO, ÍCONE VERDE SUAVE E TEXTO VERDE ESCURO
+  customBanner: { 
+    flexDirection: 'row', 
+    backgroundColor: theme.colors.primaryFixed, // Fundo verde claro
+    marginHorizontal: theme.spacing.margin, 
+    padding: 16, 
+    borderRadius: theme.radius.md, 
+    marginTop: 12, 
+    alignItems: 'center' 
+  },
+  customIconBox: { 
+    width: 48, 
+    height: 48, 
+    borderRadius: 24, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  customTitle: { 
+    fontFamily: theme.fonts.title, 
+    fontSize: 15, 
+    color: theme.colors.primary // Verde escuro
+  },
+  customDesc: { 
+    fontFamily: theme.fonts.body, 
+    fontSize: 11, 
+    color: theme.colors.textSecondary, 
+    marginTop: 4, 
+    lineHeight: 15 
+  },
+  customLink: { 
+    fontFamily: theme.fonts.bodyBold, 
+    fontSize: 11, 
+    marginTop: 8 
+    // A cor é aplicada dinamicamente como theme.colors.primary
+  },
 });

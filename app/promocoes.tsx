@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   noResultsText: { fontFamily: theme.fonts.bodyMedium, fontSize: 13, color: theme.colors.error, marginLeft: 8 },
 
   // MARGEM INFERIOR AUMENTADA
-  titleContainer: { paddingHorizontal: theme.spacing.margin, marginTop: 16, marginBottom: 40 },
+  titleContainer: { paddingHorizontal: theme.spacing.margin, marginTop: 16, marginBottom: 20 },
   title: { fontFamily: theme.fonts.title, fontSize: 26, color: theme.colors.primary, marginBottom: 4 },
   subtitle: { fontFamily: theme.fonts.body, fontSize: 13, color: theme.colors.textSecondary },
 
