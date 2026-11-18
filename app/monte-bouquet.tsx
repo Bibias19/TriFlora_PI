@@ -6,6 +6,7 @@ import { theme } from '../theme';
 import { Header } from '../components/Header';
 import { useCart } from '../context/CartContext';
 import { flowersData, foliageData, finishingOptions } from '../data/bouquetData';
+import { localImages } from '../data/localImages';
 
 export default function MonteBouquet() {
   const { addItem } = useCart();
@@ -35,7 +36,6 @@ export default function MonteBouquet() {
       setShowMaxWarning(false);
     }
 
-    // Controle do aviso de mínimo
     if (total < 2) {
       setShowMinWarning(true);
     } else {
@@ -63,7 +63,6 @@ export default function MonteBouquet() {
   const handleNextStep = () => {
     const totalStems = Object.values(quantities).reduce((acc, qty) => acc + qty, 0);
     
-    // REGRA: Só passa para a próxima etapa se tiver no mínimo 2 hastes
     if (step === 1 && totalStems < 2) {
       Alert.alert(
         "Atenção",
@@ -98,7 +97,7 @@ export default function MonteBouquet() {
       id: `custom-${Date.now()}`,
       name: 'Arranjo Autoral Triflora',
       price: totalPrice,
-      image: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?q=80&w=400&auto=format&fit=crop',
+      image: localImages.bouquetPreview,
       type: 'custom_bouquet'
     });
     router.push('/(tabs)/carrinho');
@@ -115,9 +114,26 @@ export default function MonteBouquet() {
 
         return (
           <View key={flower.id} style={styles.flowerCard}>
-            <Image source={{ uri: flower.image }} style={styles.flowerImage} />
+            <Image source={flower.image} style={styles.flowerImage} />
             <View style={styles.flowerInfo}>
-              <Text style={styles.flowerName}>{flower.name}</Text>
+              
+              {/* BOLINHA DE COR FORÇADA PARA DEBUG */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                <View 
+                  style={{ 
+                    width: 16, 
+                    height: 16, 
+                    borderRadius: 8, 
+                    backgroundColor: flower.color,
+                    borderWidth: 1,
+                    borderColor: 'red', // Borda vermelha só para debug
+                    marginRight: 8,
+                    minWidth: 16, 
+                    minHeight: 16 
+                  }} 
+                />
+                <Text style={styles.flowerName} numberOfLines={2}>{flower.name}</Text>
+              </View>
               <Text style={styles.flowerPrice}>R$ {flower.price.toFixed(2).replace('.', ',')} <Text style={styles.perStem}>/ haste</Text></Text>
             </View>
             <View style={styles.counterContainer}>
@@ -173,10 +189,9 @@ export default function MonteBouquet() {
       <Text style={styles.sectionTitle}>Folhagens</Text>
       <Text style={styles.sectionSubtitle}>Adicione textura e frescor natural ao buquê</Text>
       
-      {/* AVISO DE FOLHAGEM OPCIONAL */}
       <View style={styles.infoBox}>
         <MaterialIcons name="info-outline" size={18} color={theme.colors.primary} />
-        <Text style={styles.infoText}>Se você quiser sem folhagem, basta clicar em Avançar.</Text>
+        <Text style={styles.infoText}>A adição de folhagens é opcional. Caso deseje um arranjo sem folhagens, prossiga clicando em "Avançar".</Text>
       </View>
 
       <View style={styles.foliageGrid}>
@@ -188,7 +203,7 @@ export default function MonteBouquet() {
               style={[styles.foliageCard, isSelected && styles.foliageCardActive]}
               onPress={() => toggleFoliage(foliage.id)}
             >
-              <Image source={{ uri: foliage.image }} style={styles.foliageImage} />
+              <Image source={foliage.image} style={styles.foliageImage} />
               <Text style={styles.foliageName}>{foliage.name}</Text>
               <Text style={styles.foliagePrice}>+ R$ {foliage.price.toFixed(2).replace('.', ',')}</Text>
             </TouchableOpacity>
@@ -266,7 +281,7 @@ export default function MonteBouquet() {
           
           <View style={styles.imageHalo}>
             <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?q=80&w=400&auto=format&fit=crop' }} 
+              source={localImages.bouquetPreview}
               style={styles.bouquetImage} 
             />
           </View>
@@ -506,23 +521,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.surface,
-    padding: 12,
+    padding: 14,
     borderRadius: theme.radius.md,
-    marginBottom: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   flowerImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 14,
   },
   flowerInfo: {
     flex: 1,
+    justifyContent: 'center',
   },
   flowerName: {
     fontFamily: theme.fonts.bodyBold,
     fontSize: 14,
     color: theme.colors.primary,
+    flex: 1,
   },
   flowerPrice: {
     fontFamily: theme.fonts.bodyBold,
@@ -541,6 +560,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceContainer,
     borderRadius: 20,
     padding: 4,
+    marginLeft: 8,
   },
   counterButton: {
     width: 28,
@@ -613,7 +633,6 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.bodyBold,
   },
 
-  // AVISO DE FOLHAGEM OPCIONAL
   infoBox: {
     flexDirection: 'row',
     alignItems: 'center',

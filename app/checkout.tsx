@@ -151,7 +151,7 @@ export default function Checkout() {
           
           {items.map(item => (
             <View key={item.id} style={styles.itemRow}>
-              <Image source={{ uri: item.image }} style={styles.itemImage} />
+              <Image source={item.image} style={styles.itemImage} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
                 <Text style={styles.itemQty}>Qtd: {item.quantity}</Text>

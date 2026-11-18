@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { theme } from '../theme';
 import { Header } from '../components/Header';
 import { useCart } from '../context/CartContext';
+import { localImages } from '../data/localImages';
 
 // Produtos da Coleção de Primavera
 const primaveraProducts = [
@@ -13,7 +14,7 @@ const primaveraProducts = [
     name: 'Buquê de Tulipas Coloridas',
     category: 'Tulipas',
     price: 129.90,
-    image: 'https://images.unsplash.com/photo-1587577319445-8db6d7eb278a?q=80&w=600&auto=format&fit=crop',
+    image: localImages.products.p1,
     tag: 'PRIMAVERA',
     tagColor: '#E67BA0',
   },
@@ -22,7 +23,7 @@ const primaveraProducts = [
     name: 'Buquê de Margaridas Silvestres',
     category: 'Margaridas',
     price: 89.90,
-    image: 'https://images.unsplash.com/photo-1508610048659-a06b669e3321?q=80&w=600&auto=format&fit=crop',
+    image: localImages.products.p2,
     tag: 'CAMPESTRE',
     tagColor: '#F2B33D',
   },
@@ -31,7 +32,7 @@ const primaveraProducts = [
     name: 'Arranjo de Peônias Cor-de-Rosa',
     category: 'Peônias',
     price: 219.90,
-    image: 'https://images.unsplash.com/photo-1562690868-60bbe7293e94?q=80&w=600&auto=format&fit=crop',
+    image: localImages.products.p3,
     tag: 'ASSINATURA',
     tagColor: '#E67BA0',
   },
@@ -40,7 +41,7 @@ const primaveraProducts = [
     name: 'Buquê de Lírios Brancos',
     category: 'Lírios',
     price: 159.90,
-    image: 'https://images.unsplash.com/photo-1595124350361-193a200f7308?q=80&w=600&auto=format&fit=crop',
+    image: localImages.products.p4,
     tag: 'DELICADO',
     tagColor: '#7DAA7A',
   },
@@ -49,7 +50,7 @@ const primaveraProducts = [
     name: 'Cesta de Girassóis',
     category: 'Girassóis',
     price: 179.90,
-    image: 'https://images.unsplash.com/photo-1591886812855-0a73fc23f5ce?q=80&w=600&auto=format&fit=crop',
+    image: localImages.products.p5,
     tag: 'ALEGRIA',
     tagColor: '#F2B33D',
   },
@@ -58,7 +59,7 @@ const primaveraProducts = [
     name: 'Buquê de Lavanda Aromática',
     category: 'Lavanda',
     price: 149.90,
-    image: 'https://images.unsplash.com/photo-1596438459194-f28de43b12ee?q=80&w=600&auto=format&fit=crop',
+    image: localImages.products.p6,
     tag: 'RELAXANTE',
     tagColor: '#9B6DBA',
   },
@@ -76,7 +77,7 @@ export default function Primavera() {
         {/* Banner Hero da Coleção */}
         <View style={styles.heroContainer}>
           <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?q=80&w=800&auto=format&fit=crop' }}
+            source={localImages.springHero}
             style={styles.heroImage}
           />
           <View style={styles.heroOverlay}>
@@ -99,7 +100,7 @@ export default function Primavera() {
               activeOpacity={0.9}
             >
               <View style={styles.imageContainer}>
-                <Image source={{ uri: product.image }} style={styles.productImage} />
+                <Image source={product.image} style={styles.productImage} />
                 <View style={[styles.tagBadge, { backgroundColor: product.tagColor }]}>
                   <Text style={styles.tagText}>{product.tag}</Text>
                 </View>

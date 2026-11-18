@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking } 
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { Header } from '../components/Header';
+import { localImages } from '../data/localImages';
 
 const especialistasData = [
   {
@@ -10,7 +11,7 @@ const especialistasData = [
     name: 'Marina Flores',
     specialty: 'Florista Sênior & Bouquets',
     experience: '10 anos de experiência',
-    image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop',
+    image: localImages.specialist,
     description: 'Especialista em arranjos românticos e bouquets autorais.',
     phone: '5511999999999',
   },
@@ -19,7 +20,7 @@ const especialistasData = [
     name: 'Lucas Jardim',
     specialty: 'Paisagismo & Plantas',
     experience: '8 anos de experiência',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop',
+    image: localImages.specialist,
     description: 'Cuida de plantas e cria composições para ambientes.',
     phone: '5511999999999',
   },
@@ -28,7 +29,7 @@ const especialistasData = [
     name: 'Camila Rosas',
     specialty: 'Decoração & Eventos',
     experience: '6 anos de experiência',
-    image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=800&auto=format&fit=crop',
+    image: localImages.specialist,
     description: 'Especialista em decoração floral para festas e eventos.',
     phone: '5511999999999',
   },
@@ -65,7 +66,7 @@ export default function Especialistas() {
               activeOpacity={0.9}
             >
               <View style={styles.imageContainer}>
-                <Image source={{ uri: esp.image }} style={styles.image} />
+                <Image source={esp.image} style={styles.image} />
               </View>
               
               <View style={styles.info}>

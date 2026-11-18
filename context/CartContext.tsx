@@ -1,11 +1,12 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
+import type { ImageSourcePropType } from 'react-native';
 
 export interface CartItem {
   id: string;
   name: string;
   price: number;
   quantity: number;
-  image: string;
+  image: ImageSourcePropType;
   type: 'product' | 'custom_bouquet';
 }
 

@@ -92,7 +92,7 @@ export default function Promocoes() {
                       style={styles.searchResultItem}
                       onPress={() => { setSearchText(''); Keyboard.dismiss(); router.push(`/produto/${prod.id}`); }}
                     >
-                      <Image source={{ uri: prod.image }} style={styles.searchResultImg} />
+                      <Image source={prod.image} style={styles.searchResultImg} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.searchResultName}>{prod.name}</Text>
                         <Text style={styles.searchResultPrice}>R$ {prod.price.toFixed(2).replace('.', ',')}</Text>
@@ -126,7 +126,7 @@ export default function Promocoes() {
               activeOpacity={0.9}
             >
               <View style={styles.promoImageContainer}>
-                <Image source={{ uri: product.image }} style={styles.promoImage} />
+                <Image source={product.image} style={styles.promoImage} />
                 <View style={styles.discountBadge}>
                   <Text style={styles.discountText}>{product.discount}</Text>
                 </View>

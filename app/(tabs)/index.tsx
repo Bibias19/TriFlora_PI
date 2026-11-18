@@ -6,6 +6,7 @@ import { theme } from '../../theme';
 import { Header } from '../../components/Header';
 import { productsData } from '../../data/products';
 import { categoriesData } from '../../data/categories';
+import { localImages } from '../../data/localImages';
 import { useCart } from '../../context/CartContext';
 
 const normalizeString = (str: string) => {
@@ -99,7 +100,7 @@ export default function Index() {
                       style={styles.searchResultItem}
                       onPress={() => { setSearchText(''); Keyboard.dismiss(); router.push(`/produto/${prod.id}`); }}
                     >
-                      <Image source={{ uri: prod.image }} style={styles.searchResultImg} />
+                      <Image source={prod.image} style={styles.searchResultImg} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.searchResultName}>{prod.name}</Text>
                         <Text style={styles.searchResultPrice}>R$ {prod.price.toFixed(2).replace('.', ',')}</Text>
@@ -119,7 +120,7 @@ export default function Index() {
 
         <View style={styles.heroBanner}>
           <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?q=80&w=800&auto=format&fit=crop' }} 
+            source={localImages.homeHero}
             style={styles.heroImage} 
           />
           <View style={styles.heroOverlay}>
@@ -169,7 +170,7 @@ export default function Index() {
                 {filteredProducts.map((product) => (
                   <TouchableOpacity key={product.id} style={styles.gridCard} onPress={() => router.push(`/produto/${product.id}`)}>
                     <View style={styles.gridImageContainer}>
-                      <Image source={{ uri: product.image }} style={styles.gridImage} />
+                      <Image source={product.image} style={styles.gridImage} />
                     </View>
                     <Text style={[styles.gridTag, { color: theme.colors.textPrimary }]}>{product.category.toUpperCase()}</Text>
                     <Text style={styles.gridName} numberOfLines={2}>{product.name}</Text>
@@ -235,7 +236,7 @@ export default function Index() {
                   <Text style={styles.promoOldPrice}>R$ 199,00</Text>
                 </View>
               </View>
-              <Image source={{ uri: 'https://images.unsplash.com/photo-1595124350361-193a200f7308?q=80&w=400&auto=format&fit=crop' }} style={styles.promoImage} />
+              <Image source={localImages.homePromo} style={styles.promoImage} />
             </View>
 
             {recomendacoesProducts.length > 0 && (
@@ -253,7 +254,7 @@ export default function Index() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
                   {recomendacoesProducts.map((product) => (
                     <TouchableOpacity key={product.id} style={styles.productCard} onPress={() => router.push(`/produto/${product.id}`)}>
-                      <Image source={{ uri: product.image }} style={styles.productImage} />
+                      <Image source={product.image} style={styles.productImage} />
                       <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
                       <View style={styles.productFooter}>
                         <Text style={styles.productPrice}>R$ {product.price.toFixed(2).replace('.', ',')}</Text>
@@ -288,7 +289,7 @@ export default function Index() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
                   {maisVendidosProducts.map((product) => (
                     <TouchableOpacity key={product.id} style={styles.productCard} onPress={() => router.push(`/produto/${product.id}`)}>
-                      <Image source={{ uri: product.image }} style={styles.productImage} />
+                      <Image source={product.image} style={styles.productImage} />
                       <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
                       <View style={styles.productFooter}>
                         <Text style={styles.productPrice}>R$ {product.price.toFixed(2).replace('.', ',')}</Text>
@@ -323,7 +324,7 @@ export default function Index() {
                   onPress={() => setActiveFilter(category.name)}
                 >
                   <View style={styles.categoryImageContainer}>
-                    <Image source={{ uri: category.image }} style={styles.categoryImage} />
+                    <Image source={category.image} style={styles.categoryImage} />
                     <View style={styles.optionsBadge}>
                       <Text style={styles.optionsText}>{category.options}</Text>
                     </View>

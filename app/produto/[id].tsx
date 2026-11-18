@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList, type ImageSourcePropType } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
 import { theme } from '../../theme';
@@ -14,7 +14,7 @@ export default function ProdutoDetalhes() {
   // Estados locais
   const [quantity, setQuantity] = useState(1);
   const [hasVase, setHasVase] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(''); // Guarda a foto principal atual
+  const [selectedImage, setSelectedImage] = useState<ImageSourcePropType | null>(null);
   
   const { addItem } = useCart();
 
@@ -53,7 +53,7 @@ export default function ProdutoDetalhes() {
         {/* Imagem Principal */}
         <View style={styles.imageContainer}>
           <Image 
-            source={{ uri: selectedImage || product.image }} 
+            source={selectedImage ?? product.image}
             style={styles.mainImage} 
           />
           <View style={styles.badge}>
@@ -73,7 +73,7 @@ export default function ProdutoDetalhes() {
                 (selectedImage === imgUrl || (!selectedImage && index === 0)) && styles.thumbnailActive
               ]}
             >
-              <Image source={{ uri: imgUrl }} style={styles.thumbnailImage} />
+              <Image source={imgUrl} style={styles.thumbnailImage} />
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -160,7 +160,7 @@ export default function ProdutoDetalhes() {
                   onPress={() => router.push(`/produto/${relProduct.id}`)}
                 >
                   <View style={styles.relatedImageContainer}>
-                    <Image source={{ uri: relProduct.image }} style={styles.relatedImage} />
+                    <Image source={relProduct.image} style={styles.relatedImage} />
                   </View>
                   <Text style={styles.relatedName} numberOfLines={1}>{relProduct.name}</Text>
                   <Text style={styles.relatedPrice}>R$ {relProduct.price.toFixed(2).replace('.', ',')}</Text>
