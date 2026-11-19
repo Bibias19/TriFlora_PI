@@ -5,68 +5,24 @@ import { router } from 'expo-router';
 import { theme } from '../theme';
 import { Header } from '../components/Header';
 import { useCart } from '../context/CartContext';
+import { productsData } from '../data/products';
 import { localImages } from '../data/localImages';
 
-// Produtos da Coleção de Primavera
-const primaveraProducts = [
-  {
-    id: 'p1',
-    name: 'Buquê de Tulipas Coloridas',
-    category: 'Tulipas',
-    price: 129.90,
-    image: localImages.products.p1,
-    tag: 'PRIMAVERA',
-    tagColor: '#E67BA0',
-  },
-  {
-    id: 'p2',
-    name: 'Buquê de Margaridas Silvestres',
-    category: 'Margaridas',
-    price: 89.90,
-    image: localImages.products.p2,
-    tag: 'CAMPESTRE',
-    tagColor: '#F2B33D',
-  },
-  {
-    id: 'p3',
-    name: 'Arranjo de Peônias Cor-de-Rosa',
-    category: 'Peônias',
-    price: 219.90,
-    image: localImages.products.p3,
-    tag: 'ASSINATURA',
-    tagColor: '#E67BA0',
-  },
-  {
-    id: 'p4',
-    name: 'Buquê de Lírios Brancos',
-    category: 'Lírios',
-    price: 159.90,
-    image: localImages.products.p4,
-    tag: 'DELICADO',
-    tagColor: '#7DAA7A',
-  },
-  {
-    id: 'p5',
-    name: 'Cesta de Girassóis',
-    category: 'Girassóis',
-    price: 179.90,
-    image: localImages.products.p5,
-    tag: 'ALEGRIA',
-    tagColor: '#F2B33D',
-  },
-  {
-    id: 'p6',
-    name: 'Buquê de Lavanda Aromática',
-    category: 'Lavanda',
-    price: 149.90,
-    image: localImages.products.p6,
-    tag: 'RELAXANTE',
-    tagColor: '#9B6DBA',
-  },
-];
+// Tags visuais específicas da tela de Primavera (apenas apresentação)
+const primaveraTags: Record<string, { tag: string; tagColor: string }> = {
+  p1: { tag: 'PRIMAVERA',  tagColor: '#E67BA0' },
+  p2: { tag: 'CAMPESTRE',  tagColor: '#F2B33D' },
+  p3: { tag: 'ASSINATURA', tagColor: '#E67BA0' },
+  p4: { tag: 'DELICADO',   tagColor: '#7DAA7A' },
+  p5: { tag: 'ALEGRIA',    tagColor: '#F2B33D' },
+  p6: { tag: 'RELAXANTE',  tagColor: '#9B6DBA' },
+};
 
 export default function Primavera() {
   const { addItem } = useCart();
+
+  // ✅ Fonte única de verdade: filtra direto do catálogo
+  const primaveraProducts = productsData.filter(p => p.category === 'Primavera');
 
   return (
     <View style={styles.mainContainer}>
@@ -92,47 +48,55 @@ export default function Primavera() {
 
         {/* Grade 2x3 de Produtos */}
         <View style={styles.gridContainer}>
-          {primaveraProducts.map((product) => (
-            <TouchableOpacity 
-              key={product.id}
-              style={styles.productCard}
-              onPress={() => router.push(`/produto/${product.id}`)}
-              activeOpacity={0.9}
-            >
-              <View style={styles.imageContainer}>
-                <Image source={product.image} style={styles.productImage} />
-                <View style={[styles.tagBadge, { backgroundColor: product.tagColor }]}>
-                  <Text style={styles.tagText}>{product.tag}</Text>
-                </View>
-              </View>
+          {primaveraProducts.map((product) => {
+            // Fallback caso o produto não tenha tag visual mapeada
+            const visual = primaveraTags[product.id] ?? { 
+              tag: 'PRIMAVERA', 
+              tagColor: theme.colors.primary 
+            };
 
-              <View style={styles.productInfo}>
-                <Text style={[styles.categoryText, { color: product.tagColor }]}>
-                  {product.category.toUpperCase()}
-                </Text>
-                <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
-                
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceText}>R$ {product.price.toFixed(2).replace('.', ',')}</Text>
-                  <TouchableOpacity 
-                    style={[styles.addButton, { borderColor: product.tagColor }]}
-                    onPress={() => {
-                      addItem({
-                        id: product.id,
-                        name: product.name,
-                        price: product.price,
-                        image: product.image,
-                        type: 'product',
-                      });
-                      router.push('/(tabs)/carrinho');
-                    }}
-                  >
-                    <MaterialIcons name="add" size={20} color={product.tagColor} />
-                  </TouchableOpacity>
+            return (
+              <TouchableOpacity 
+                key={product.id}
+                style={styles.productCard}
+                onPress={() => router.push(`/produto/${product.id}`)}
+                activeOpacity={0.9}
+              >
+                <View style={styles.imageContainer}>
+                  <Image source={product.image} style={styles.productImage} />
+                  <View style={[styles.tagBadge, { backgroundColor: visual.tagColor }]}>
+                    <Text style={styles.tagText}>{visual.tag}</Text>
+                  </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+
+                <View style={styles.productInfo}>
+                  <Text style={[styles.categoryText, { color: visual.tagColor }]}>
+                    {product.category.toUpperCase()}
+                  </Text>
+                  <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
+                  
+                  <View style={styles.priceRow}>
+                    <Text style={styles.priceText}>R$ {product.price.toFixed(2).replace('.', ',')}</Text>
+                    <TouchableOpacity 
+                      style={[styles.addButton, { borderColor: visual.tagColor }]}
+                      onPress={() => {
+                        addItem({
+                          id: product.id,
+                          name: product.name,
+                          price: product.price,
+                          image: product.image,
+                          type: 'product',
+                        });
+                        router.push('/(tabs)/carrinho');
+                      }}
+                    >
+                      <MaterialIcons name="add" size={20} color={visual.tagColor} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
       </ScrollView>
@@ -152,11 +116,6 @@ const styles = StyleSheet.create({
   heroTagText: { fontFamily: theme.fonts.bodyBold, fontSize: 10, color: theme.colors.white, letterSpacing: 1.5 },
   heroTitle: { fontFamily: theme.fonts.title, fontSize: 26, color: theme.colors.white, marginBottom: 6 },
   heroSubtitle: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.surfaceContainer, lineHeight: 18 },
-
-  // Título da Grade
-  titleContainer: { paddingHorizontal: theme.spacing.margin, marginBottom: 16 },
-  sectionTitle: { fontFamily: theme.fonts.title, fontSize: 22, color: theme.colors.primary },
-  sectionSubtitle: { fontFamily: theme.fonts.body, fontSize: 13, color: theme.colors.textSecondary, marginTop: 4 },
 
   // Grade de Produtos
   gridContainer: { 

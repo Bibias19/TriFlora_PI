@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList, type ImageSourcePropType } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, type ImageSourcePropType } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
 import { theme } from '../../theme';
@@ -43,6 +43,11 @@ export default function ProdutoDetalhes() {
 
   // Filtra outros produtos para o carrossel (excluindo o produto atual)
   const relatedProducts = productsData.filter(p => p.id !== product.id).slice(0, 3);
+
+  // ✅ CORREÇÃO: leva para a Home já filtrada pela categoria do produto
+  const handleSeeAll = () => {
+    router.push({ pathname: '/(tabs)', params: { filter: product.category } });
+  };
 
   return (
     <View style={styles.mainContainer}>
@@ -147,7 +152,8 @@ export default function ProdutoDetalhes() {
           <View style={styles.relatedSection}>
             <View style={styles.relatedHeader}>
               <Text style={styles.sectionTitle}>Você também pode amar</Text>
-              <TouchableOpacity onPress={() => router.push('/categorias')}>
+              {/* ✅ CORREÇÃO: agora leva para a Home filtrada pela categoria */}
+              <TouchableOpacity onPress={handleSeeAll}>
                 <Text style={styles.seeAllText}>Ver Todos</Text>
               </TouchableOpacity>
             </View>

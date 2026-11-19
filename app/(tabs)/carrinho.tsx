@@ -7,27 +7,36 @@ import { Header } from '../../components/Header';
 import { useCart } from '../../context/CartContext';
 
 export default function Carrinho() {
-  const { items, removeItem, updateQuantity, subtotal } = useCart();
+  const { 
+    items, 
+    removeItem, 
+    updateQuantity, 
+    subtotal,
+    hasVase,
+    setHasVase,
+    hasCard,
+    setHasCard,
+    couponApplied,
+    setCouponApplied,
+    couponDiscount,
+    finalTotal,
+    vasePrice,
+  } = useCart();
   
-  // Estados locais para os extras do carrinho
-  const [hasCard, setHasCard] = useState(true);
-  const [hasVase, setHasVase] = useState(false);
-  const [coupon, setCoupon] = useState('PRIMEIRAFLOR');
-  const [couponApplied, setCouponApplied] = useState(true);
-
-  const vasePrice = 48.00;
-  const couponDiscount = couponApplied ? 18.00 : 0.00;
-  
-  // Cálculos
-  const finalTotal = subtotal + (hasVase ? vasePrice : 0) - couponDiscount;
+  // Estado local só para o texto do input do cupom
+  const [coupon, setCoupon] = useState('');
+  const [couponError, setCouponError] = useState('');
 
   const formatPrice = (value: number) => `R$ ${value.toFixed(2).replace('.', ',')}`;
 
   const applyCoupon = () => {
-    if (coupon.toUpperCase() === 'PRIMEIRAFLOR') {
+    const normalizedCoupon = coupon.trim().toUpperCase();
+    if (normalizedCoupon === 'PRIMEIRAFLOR') {
       setCouponApplied(true);
+      setCouponError('');
     } else {
       setCouponApplied(false);
+      setCouponError(coupon.trim() ? 'Cupom inválido.' : 'Digite um cupom.');
     }
   };
 
@@ -99,7 +108,7 @@ export default function Carrinho() {
               <TouchableOpacity style={styles.addonRow} onPress={() => setHasCard(!hasCard)}>
                 <View style={styles.addonLeft}>
                   <View style={[styles.addonIcon, { backgroundColor: 'rgba(229,106,140,0.1)' }]}>
-                    <MaterialIcons name="edit-note" size={20} color={theme.colors.rose} />
+                    <MaterialIcons name="edit-note" size={20} color={theme.colors.floralPink} />
                   </View>
                   <View>
                     <Text style={styles.addonTitle}>Cartão com Caligrafia Manual</Text>
@@ -126,7 +135,7 @@ export default function Carrinho() {
                   </View>
                 </View>
                 <View style={styles.addonRight}>
-                  <Text style={styles.addonPrice}>+ R$ 48,00</Text>
+                  <Text style={styles.addonPrice}>+ {formatPrice(vasePrice)}</Text>
                   <View style={hasVase ? styles.checkboxActive : styles.checkboxInactive}>
                     {hasVase && <MaterialIcons name="check" size={14} color={theme.colors.white} />}
                   </View>
@@ -149,7 +158,10 @@ export default function Carrinho() {
                   <TextInput 
                     style={styles.couponInput}
                     value={coupon}
-                    onChangeText={setCoupon}
+                    onChangeText={(text) => {
+                      setCoupon(text);
+                      setCouponError('');
+                    }}
                     placeholder="DIGITE AQUI"
                     autoCapitalize="characters"
                   />
@@ -162,11 +174,14 @@ export default function Carrinho() {
 
               <View style={styles.couponSuggestion}>
                 <Text style={styles.suggestionLabel}>Sugestão:</Text>
-                <TouchableOpacity style={styles.suggestionBadge} onPress={() => { setCoupon('PRIMEIRAFLOR'); setCouponApplied(true); }}>
+                <TouchableOpacity style={styles.suggestionBadge} onPress={() => { setCoupon('PRIMEIRAFLOR'); setCouponApplied(true); setCouponError(''); }}>
                   <Text style={styles.suggestionText}>PRIMEIRAFLOR ✨</Text>
                 </TouchableOpacity>
                 <Text style={styles.suggestionDesc}>Frete cortesia</Text>
               </View>
+              {!!couponError && (
+                <Text style={styles.couponError}>{couponError}</Text>
+              )}
             </View>
 
             {/* Resumo dos Valores */}
@@ -188,7 +203,7 @@ export default function Carrinho() {
               {hasVase && (
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Vaso de Cerâmica</Text>
-                  <Text style={styles.summaryValue}>+ R$ 48,00</Text>
+                  <Text style={styles.summaryValue}>+ {formatPrice(vasePrice)}</Text>
                 </View>
               )}
 
@@ -286,7 +301,7 @@ const styles = StyleSheet.create({
   freeBadge: { backgroundColor: theme.colors.primaryFixed, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, marginRight: 8 },
   freeBadgeText: { fontFamily: theme.fonts.bodyBold, fontSize: 9, color: theme.colors.primary },
   addonPrice: { fontFamily: theme.fonts.bodyMedium, fontSize: 12, color: theme.colors.primary, marginRight: 8 },
-  checkboxActive: { width: 20, height: 20, borderRadius: 10, backgroundColor: theme.colors.rose, justifyContent: 'center', alignItems: 'center' },
+  checkboxActive: { width: 20, height: 20, borderRadius: 10, backgroundColor:theme.colors.floralPink, justifyContent: 'center', alignItems: 'center' },
   checkboxInactive: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: theme.colors.textOutline },
 
   couponInputRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
@@ -295,6 +310,7 @@ const styles = StyleSheet.create({
   applyButton: { backgroundColor: theme.colors.primary, height: 40, paddingHorizontal: 20, borderRadius: 20, justifyContent: 'center' },
   applyButtonText: { fontFamily: theme.fonts.bodyBold, fontSize: 13, color: theme.colors.white },
   couponSuggestion: { flexDirection: 'row', alignItems: 'center' },
+  couponError: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.tertiary, marginTop: 8 },
   suggestionLabel: { fontFamily: theme.fonts.body, fontSize: 11, color: theme.colors.textSecondary, marginRight: 6 },
   suggestionBadge: { backgroundColor: theme.colors.primaryFixed, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginRight: 8 },
   suggestionText: { fontFamily: theme.fonts.bodyBold, fontSize: 10, color: theme.colors.primary },

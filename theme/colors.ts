@@ -7,6 +7,8 @@ export const colors = {
   secondary: '#5E8F6A',
   primaryFixed: '#D3DEC9',
   
+  tertiary: '#F28C4B', // 👈 ADICIONADO — laranja terracota (destaque)
+  
   terracotta: '#F28C4B',
   floralPink: '#E67BA0',
   rosyRed: '#D9445A',

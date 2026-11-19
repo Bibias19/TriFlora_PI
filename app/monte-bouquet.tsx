@@ -117,7 +117,7 @@ export default function MonteBouquet() {
             <Image source={flower.image} style={styles.flowerImage} />
             <View style={styles.flowerInfo}>
               
-              {/* BOLINHA DE COR FORÇADA PARA DEBUG */}
+              {/* BOLINHA DE COR COM CONTORNO SUAVE */}
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                 <View 
                   style={{ 
@@ -126,7 +126,7 @@ export default function MonteBouquet() {
                     borderRadius: 8, 
                     backgroundColor: flower.color,
                     borderWidth: 1,
-                    borderColor: 'red', // Borda vermelha só para debug
+                    borderColor: 'rgba(0, 0, 0, 0.15)', // Contorno preto suave
                     marginRight: 8,
                     minWidth: 16, 
                     minHeight: 16 
