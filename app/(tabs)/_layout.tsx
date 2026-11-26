@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Image, StyleSheet } from 'react-native';
 import { theme } from '../../theme';
+import { localImages } from '../../data/localImages'; // ✨ Importando o localImages
 
 export default function TabLayout() {
   return (
@@ -37,7 +38,8 @@ export default function TabLayout() {
           title: 'Perfil',
           tabBarIcon: ({ focused }) => (
             <Image 
-              source={require('../../assets/avatar_sofia.png')} 
+              // ✨ CORREÇÃO AQUI: Usando o localImages que já mapeia a foto da Sofia
+              source={localImages.specialist} 
               style={[
                 styles.avatarIcon, 
                 { borderColor: focused ? theme.colors.primary : 'transparent' }
@@ -72,6 +74,5 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     borderWidth: 2,
-    // Se a aba estiver ativa, a borda fica verde, se não, fica transparente
   }
 });

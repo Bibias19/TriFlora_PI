@@ -8,6 +8,7 @@ export interface CartItem {
   quantity: number;
   image: ImageSourcePropType;
   type: 'product' | 'custom_bouquet';
+  hasVase?: boolean; // ✨ ADICIONADO AQUI
 }
 
 // Constantes de preço (centralizadas para fácil manutenção)

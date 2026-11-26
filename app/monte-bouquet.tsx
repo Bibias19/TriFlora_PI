@@ -97,7 +97,7 @@ export default function MonteBouquet() {
       id: `custom-${Date.now()}`,
       name: 'Arranjo Autoral Triflora',
       price: totalPrice,
-      image: localImages.bouquetPreview,
+      image: localImages.bouquetPreview, // Aqui mantemos para o carrinho
       type: 'custom_bouquet'
     });
     router.push('/(tabs)/carrinho');
@@ -117,7 +117,6 @@ export default function MonteBouquet() {
             <Image source={flower.image} style={styles.flowerImage} />
             <View style={styles.flowerInfo}>
               
-              {/* BOLINHA DE COR COM CONTORNO SUAVE */}
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                 <View 
                   style={{ 
@@ -126,7 +125,7 @@ export default function MonteBouquet() {
                     borderRadius: 8, 
                     backgroundColor: flower.color,
                     borderWidth: 1,
-                    borderColor: 'rgba(0, 0, 0, 0.15)', // Contorno preto suave
+                    borderColor: 'rgba(0, 0, 0, 0.15)',
                     marginRight: 8,
                     minWidth: 16, 
                     minHeight: 16 
@@ -281,13 +280,15 @@ export default function MonteBouquet() {
           
           <View style={styles.imageHalo}>
             <Image 
-              source={localImages.bouquetPreview}
+              // ✨ CORREÇÃO: Trocamos o bouquetPreview por uma imagem que com certeza existe (products.b1)
+              source={localImages.products.b1} 
               style={styles.bouquetImage} 
             />
           </View>
 
           <Text style={styles.bouquetTitle}>Arranjo Autoral</Text>
           
+          {/* ✨ CORREÇÃO: A barra de progresso agora tem fundo para ser visível */}
           <View style={styles.progressBarContainer}>
             {flowersData.map(flower => {
               const qty = quantities[flower.id] || 0;
@@ -450,11 +451,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
+    overflow: 'hidden', // Garante que a imagem não vaze do círculo
   },
   bouquetImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: '100%',
+    height: '100%',
   },
   bouquetTitle: {
     fontFamily: theme.fonts.title,

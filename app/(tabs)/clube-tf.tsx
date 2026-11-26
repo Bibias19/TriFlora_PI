@@ -25,7 +25,6 @@ export default function ClubeTF() {
             <Text style={styles.tagText}>CLUBE TF • ASSINATURA & AFETO</Text>
           </View>
           <Text style={styles.title}>O refúgio de quem cultiva a beleza natural</Text>
-          <Text style={styles.subtitle}>Experiências botânicas curadas à mão e privilégios que florescem a cada estação.</Text>
         </View>
 
         {/* Cartão VIP */}

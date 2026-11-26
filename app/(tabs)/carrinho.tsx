@@ -23,7 +23,6 @@ export default function Carrinho() {
     vasePrice,
   } = useCart();
   
-  // Estado local só para o texto do input do cupom
   const [coupon, setCoupon] = useState('');
   const [couponError, setCouponError] = useState('');
 
@@ -69,16 +68,42 @@ export default function Carrinho() {
         ) : (
           <>
             {/* Lista de Itens */}
-            {items.map((item) => (
-              <View key={item.id} style={styles.itemCard}>
-                <Image source={item.image} style={styles.itemImage} />
-                <View style={styles.itemInfo}>
-                  <View style={styles.itemTag}>
-                    <Text style={styles.itemTagText}>{item.type === 'custom_bouquet' ? 'Monte seu Bouquet' : 'Assinatura'}</Text>
-                  </View>
-                  <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-                  <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+            {items.map((item) => {
+              const hasVaseText = item.name.includes(' | com Vaso');
+              const cleanName = item.name.replace(' | com Vaso', '');
+              const productId = item.id.replace('-vase', '');
+
+              return (
+                <View key={item.id} style={styles.itemCard}>
                   
+                  {/* ✨ ÁREA CLICÁVEL (Imagem + Textos) ✨ */}
+                  <TouchableOpacity 
+                    style={{ flexDirection: 'row', flex: 1 }}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      router.push(`/produto/${productId}`);
+                    }}
+                  >
+                    <Image source={item.image} style={styles.itemImage} />
+                    <View style={styles.itemInfo}>
+                      <View style={styles.itemTag}>
+                        <Text style={styles.itemTagText}>{item.type === 'custom_bouquet' ? 'Monte seu Bouquet' : 'Assinatura'}</Text>
+                      </View>
+                      
+                      <Text style={styles.itemName} numberOfLines={2}>{cleanName}</Text>
+                      
+                      {hasVaseText && (
+                        <View style={styles.vaseTag}>
+                          <MaterialIcons name="coffee" size={10} color={theme.colors.white} />
+                          <Text style={styles.vaseTagText}>ADICIONAL: VASO DE CERÂMICA</Text>
+                        </View>
+                      )}
+
+                      <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Ações (Quantidade e Lixeira) */}
                   <View style={styles.itemActions}>
                     <View style={styles.quantityContainer}>
                       <TouchableOpacity style={styles.qtyButton} onPress={() => updateQuantity(item.id, -1)}>
@@ -94,8 +119,8 @@ export default function Carrinho() {
                     </TouchableOpacity>
                   </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
 
             {/* Toques Especiais */}
             <View style={styles.card}>
@@ -104,7 +129,6 @@ export default function Carrinho() {
                 <Text style={styles.cardSubtitle}>Personalize seu presente</Text>
               </View>
 
-              {/* Cartão Manuscrito */}
               <TouchableOpacity style={styles.addonRow} onPress={() => setHasCard(!hasCard)}>
                 <View style={styles.addonLeft}>
                   <View style={[styles.addonIcon, { backgroundColor: 'rgba(229,106,140,0.1)' }]}>
@@ -123,7 +147,6 @@ export default function Carrinho() {
                 </View>
               </TouchableOpacity>
 
-              {/* Vaso Cerâmica */}
               <TouchableOpacity style={styles.addonRow} onPress={() => setHasVase(!hasVase)}>
                 <View style={styles.addonLeft}>
                   <View style={[styles.addonIcon, { backgroundColor: 'rgba(240,122,58,0.1)' }]}>
@@ -280,9 +303,29 @@ const styles = StyleSheet.create({
   itemTag: { backgroundColor: theme.colors.primaryFixed, alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginBottom: 4 },
   itemTagText: { fontFamily: theme.fonts.bodyBold, fontSize: 9, color: theme.colors.primary },
   itemName: { fontFamily: theme.fonts.title, fontSize: 16, color: theme.colors.primary },
+  
+  vaseTag: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: theme.colors.terracotta, 
+    alignSelf: 'flex-start', 
+    paddingHorizontal: 8, 
+    paddingVertical: 3, 
+    borderRadius: 10, 
+    marginTop: 4, 
+    marginBottom: 2 
+  },
+  vaseTagText: { 
+    fontFamily: theme.fonts.bodyBold, 
+    fontSize: 8, 
+    color: theme.colors.white, 
+    marginLeft: 4,
+    letterSpacing: 0.5
+  },
+
   itemPrice: { fontFamily: theme.fonts.bodyBold, fontSize: 16, color: theme.colors.primary, marginTop: 4 },
-  itemActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
-  quantityContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surfaceContainer, borderRadius: 16, padding: 2 },
+  itemActions: { flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 8, width: 90 },
+  quantityContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surfaceContainer, borderRadius: 16, padding: 2, marginBottom: 10 },
   qtyButton: { width: 28, height: 28, justifyContent: 'center', alignItems: 'center' },
   qtyText: { fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.primary, width: 24, textAlign: 'center' },
 

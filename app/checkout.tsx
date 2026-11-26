@@ -13,6 +13,7 @@ import { useCart } from '../context/CartContext';
 
 // ---- Tipos ----
 interface Address {
+  id: string;
   title: string;
   street: string;
   city: string;
@@ -30,17 +31,28 @@ interface CheckoutNotice {
   title: string;
   message: string;
   onConfirm?: () => void;
-  kind: 'info' | 'success';
+  onCancel?: () => void;
+  kind: 'info' | 'success' | 'confirm-delete';
   amount?: string;
 }
 
 // ---- Dados iniciais ----
-const INITIAL_ADDRESS: Address = {
-  title: 'Residencial Jardins',
-  street: 'Alameda das Hortênsias, 420 - Jardins',
-  city: 'São Paulo - SP',
-  cep: 'CEP 01423-001',
-};
+const INITIAL_ADDRESSES: Address[] = [
+  {
+    id: 'addr-1',
+    title: 'Residencial Jardins',
+    street: 'Alameda das Hortênsias, 420 - Jardins',
+    city: 'São Paulo - SP',
+    cep: 'CEP 01423-001',
+  },
+  {
+    id: 'addr-2',
+    title: 'Trabalho',
+    street: 'Av. Paulista, 1000 - Bela Vista',
+    city: 'São Paulo - SP',
+    cep: 'CEP 01310-100',
+  }
+];
 
 const INITIAL_CARD: Card = {
   id: 'card-1',
@@ -49,7 +61,6 @@ const INITIAL_CARD: Card = {
   expiry: '08/28',
 };
 
-// Chave demonstrativa para o TCC; substitua por uma chave PIX real para receber pagamentos.
 const PIX_KEY = 'triflora-demo-pix-key';
 const PIX_PIN = '482913';
 
@@ -58,7 +69,6 @@ const pixField = (id: string, value: string) =>
 
 const calculatePixCrc = (payload: string) => {
   let crc = 0xffff;
-
   for (let index = 0; index < payload.length; index += 1) {
     crc ^= payload.charCodeAt(index) << 8;
     for (let bit = 0; bit < 8; bit += 1) {
@@ -66,7 +76,6 @@ const calculatePixCrc = (payload: string) => {
       crc &= 0xffff;
     }
   }
-
   return crc.toString(16).toUpperCase().padStart(4, '0');
 };
 
@@ -99,27 +108,35 @@ export default function Checkout() {
     couponApplied, 
     couponDiscount, 
     finalTotal,
+    removeItem,
   } = useCart();
 
   // ---- Estados gerais ----
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix'>('card');
-  const [address, setAddress] = useState<Address>(INITIAL_ADDRESS);
+  
+  const [addresses, setAddresses] = useState<Address[]>(INITIAL_ADDRESSES);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>(INITIAL_ADDRESSES[0].id);
+  const selectedAddress = addresses.find(a => a.id === selectedAddressId) || addresses[0];
+
   const [cards, setCards] = useState<Card[]>([INITIAL_CARD]);
   const [selectedCardId, setSelectedCardId] = useState<string>(INITIAL_CARD.id);
   
-  // Modais
+  // Controle de modais
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [isAddressFormOpen, setIsAddressFormOpen] = useState(false); 
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [isPixModalOpen, setIsPixModalOpen] = useState(false);
   const [deliveryPeriod, setDeliveryPeriod] = useState<'morning' | 'afternoon'>('morning');
+  
   const [notice, setNotice] = useState<CheckoutNotice | null>(null);
   
   // ---- Formulário de endereço ----
-  const [formTitle, setFormTitle] = useState(address.title);
-  const [formCep, setFormCep] = useState(address.cep.replace(/\D/g, ''));
-  const [formStreet, setFormStreet] = useState(address.street);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [formTitle, setFormTitle] = useState('');
+  const [formCep, setFormCep] = useState('');
+  const [formStreet, setFormStreet] = useState('');
   const [formNeighborhood, setFormNeighborhood] = useState('');
-  const [formCity, setFormCity] = useState(address.city);
+  const [formCity, setFormCity] = useState('');
   const [formNumber, setFormNumber] = useState('');
   const [formComplement, setFormComplement] = useState('');
   const [isLoadingCep, setIsLoadingCep] = useState(false);
@@ -141,9 +158,9 @@ export default function Checkout() {
     title: string,
     message: string,
     onConfirm?: () => void,
-    details: Pick<CheckoutNotice, 'kind' | 'amount'> = { kind: 'info' }
+    details: Partial<CheckoutNotice> = { kind: 'info' }
   ) => {
-    setNotice({ title, message, onConfirm, ...details });
+    setNotice({ title, message, onConfirm, ...details } as CheckoutNotice);
   };
 
   const handleNoticeConfirm = () => {
@@ -152,21 +169,15 @@ export default function Checkout() {
     onConfirm?.();
   };
 
-  // ---- Handlers de endereço ----
-  const openAddressModal = () => {
-    setFormTitle(address.title);
-    setFormStreet(address.street);
-    setFormCity(address.city);
-    setFormCep(address.cep.replace(/\D/g, ''));
-    setFormNeighborhood('');
-    setFormNumber('');
-    setFormComplement('');
-    setIsAddressModalOpen(true);
+  const handleNoticeCancel = () => {
+    const onCancel = notice?.onCancel;
+    setNotice(null);
+    onCancel?.();
   };
 
+  // ---- Handlers de endereço ----
   const handleSearchCep = async () => {
     const cleanCep = formCep.replace(/\D/g, '');
-    
     if (cleanCep.length !== 8) {
       showNotice('CEP inválido', 'Digite um CEP com 8 dígitos.');
       return;
@@ -201,13 +212,64 @@ export default function Checkout() {
     const fullStreet = `${formStreet}, ${formNumber}${formComplement ? ` - ${formComplement}` : ''}${formNeighborhood ? ` - ${formNeighborhood}` : ''}`;
     const formattedCep = `CEP ${formCep.slice(0, 5)}-${formCep.slice(5)}`;
     
-    setAddress({
-      title: formTitle || 'Meu endereço',
-      street: fullStreet,
-      city: formCity,
-      cep: formattedCep,
-    });
+    if (editingAddressId) {
+      setAddresses(prev => prev.map(addr => 
+        addr.id === editingAddressId 
+          ? { ...addr, title: formTitle || 'Endereço', street: fullStreet, city: formCity, cep: formattedCep }
+          : addr
+      ));
+    } else {
+      const newAddress: Address = {
+        id: `addr-${Date.now()}`,
+        title: formTitle || 'Novo endereço',
+        street: fullStreet,
+        city: formCity,
+        cep: formattedCep,
+      };
+      setAddresses(prev => [...prev, newAddress]);
+      setSelectedAddressId(newAddress.id);
+    }
+    
+    setFormTitle(''); setFormCep(''); setFormStreet(''); setFormNeighborhood(''); setFormCity(''); setFormNumber(''); setFormComplement('');
+    setEditingAddressId(null);
+    setIsAddressFormOpen(false);
+  };
+
+  const handleEditAddress = (address: Address) => {
+    setFormTitle(address.title);
+    setFormCep(address.cep.replace(/\D/g, ''));
+    setFormStreet(address.street);
+    setFormCity(address.city);
+    setFormNumber('');
+    setFormComplement('');
+    setFormNeighborhood('');
+    
+    setEditingAddressId(address.id);
     setIsAddressModalOpen(false);
+    setIsAddressFormOpen(true);
+  };
+
+  const handleDeleteAddress = (id: string) => {
+    if (addresses.length === 1) {
+      showNotice('Atenção', 'Você precisa ter pelo menos um endereço cadastrado.');
+      return;
+    }
+
+    showNotice(
+      'Excluir Endereço',
+      'Tem certeza que deseja excluir este endereço? Essa ação não poderá ser desfeita.',
+      () => {
+        const newAddresses = addresses.filter(a => a.id !== id);
+        setAddresses(newAddresses);
+        if (selectedAddressId === id) {
+          setSelectedAddressId(newAddresses[0].id);
+        }
+      },
+      {
+        kind: 'confirm-delete',
+        onCancel: () => {}
+      }
+    );
   };
 
   // ---- Handlers de cartão ----
@@ -284,8 +346,6 @@ export default function Checkout() {
     );
   };
 
-  const selectedCard = cards.find(c => c.id === selectedCardId) || cards[0];
-
   return (
     <View style={styles.mainContainer}>
       <Header showBackButton />
@@ -317,17 +377,17 @@ export default function Checkout() {
               <MaterialIcons name="location-on" size={20} color={theme.colors.primary} />
               <Text style={styles.cardTitle}>Local de Entrega</Text>
             </View>
-            <TouchableOpacity onPress={openAddressModal}>
+            <TouchableOpacity onPress={() => setIsAddressModalOpen(true)}>
               <Text style={styles.editText}>Alterar</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.addressBox}>
             <View style={styles.addressHeader}>
-              <Text style={styles.addressTitle}>{address.title}</Text>
+              <Text style={styles.addressTitle}>{selectedAddress.title}</Text>
               <View style={styles.primaryBadge}><Text style={styles.primaryBadgeText}>Principal</Text></View>
             </View>
-            <Text style={styles.addressText}>{address.street}</Text>
-            <Text style={styles.addressSubText}>{address.city} • {address.cep}</Text>
+            <Text style={styles.addressText}>{selectedAddress.street}</Text>
+            <Text style={styles.addressSubText}>{selectedAddress.city} • {selectedAddress.cep}</Text>
           </View>
         </View>
 
@@ -421,16 +481,52 @@ export default function Checkout() {
             <Text style={styles.itemCount}>{items.length} itens</Text>
           </View>
           
-          {items.map(item => (
-            <View key={item.id} style={styles.itemRow}>
-              <Image source={item.image} style={styles.itemImage} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.itemQty}>Qtd: {item.quantity}</Text>
+          {items.map((item) => {
+            const hasVaseText = item.name.includes(' | com Vaso');
+            const cleanName = item.name.replace(' | com Vaso', '');
+            const productId = item.id.replace('-vase', '');
+
+            return (
+              <View 
+                key={item.id} 
+                style={styles.checkoutItemCard}
+              >
+                
+                <TouchableOpacity 
+                  style={styles.checkoutItemClickable}
+                  onPress={() => router.push(`/produto/${productId}`)}
+                >
+                  <Image source={item.image} style={styles.checkoutItemImage} />
+                  
+                  <View style={styles.checkoutItemInfo}>
+                    <View style={styles.checkoutItemTag}>
+                      <Text style={styles.checkoutItemTagText}>
+                        {item.type === 'custom_bouquet' ? 'Monte seu Bouquet' : 'Assinatura'}
+                      </Text>
+                    </View>
+                    
+                    <Text style={styles.checkoutItemName}>{cleanName}</Text>
+                    
+                    {hasVaseText && (
+                      <View style={styles.vaseTag}>
+                        <MaterialIcons name="coffee" size={10} color={theme.colors.white} />
+                        <Text style={styles.vaseTagText}>ADICIONAL: VASO DE CERÂMICA</Text>
+                      </View>
+                    )}
+
+                    <Text style={styles.itemQty}>Qtd: {item.quantity}</Text>
+                    <Text style={styles.checkoutItemPrice}>{formatPrice(item.price)}</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <View style={styles.checkoutItemActions}>
+                  <TouchableOpacity onPress={() => removeItem(item.id)} style={{ padding: 8 }}>
+                    <MaterialIcons name="delete-outline" size={24} color={theme.colors.textOutline} />
+                  </TouchableOpacity>
+                </View>
               </View>
-              <Text style={styles.itemPrice}>{formatPrice(item.price * item.quantity)}</Text>
-            </View>
-          ))}
+            );
+          })}
         </View>
 
         {/* Resumo */}
@@ -499,30 +595,92 @@ export default function Checkout() {
         </TouchableOpacity>
       </View>
 
-      {/* ---- MODAL: ALTERAR ENDEREÇO (com busca de CEP) ---- */}
+      {/* ---- MODAL: LISTA DE ENDEREÇOS ---- */}
       <Modal visible={isAddressModalOpen} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Meus Endereços</Text>
+              <TouchableOpacity onPress={() => setIsAddressModalOpen(false)}>
+                <MaterialIcons name="close" size={24} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {addresses.map(addr => (
+                <TouchableOpacity 
+                  key={addr.id} 
+                  style={[styles.addressOption, selectedAddressId === addr.id && styles.addressOptionActive]}
+                  onPress={() => {
+                    setSelectedAddressId(addr.id);
+                    setIsAddressModalOpen(false);
+                  }}
+                >
+                  <View style={styles.addressOptionLeft}>
+                    <MaterialIcons 
+                      name={selectedAddressId === addr.id ? "radio-button-checked" : "radio-button-unchecked"} 
+                      size={24} 
+                      color={selectedAddressId === addr.id ? theme.colors.primary : theme.colors.textOutline} 
+                    />
+                    <View style={{ marginLeft: 12, flex: 1 }}>
+                      <Text style={styles.addressOptionTitle}>{addr.title}</Text>
+                      <Text style={styles.addressOptionText}>{addr.street}</Text>
+                      <Text style={styles.addressOptionText}>{addr.city} • {addr.cep}</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.addressActions}>
+                    <TouchableOpacity style={styles.actionButton} onPress={() => handleEditAddress(addr)}>
+                      <MaterialIcons name="edit" size={20} color={theme.colors.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionButton} onPress={() => handleDeleteAddress(addr.id)}>
+                      <MaterialIcons name="delete-outline" size={20} color={theme.colors.error} />
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              ))}
+
+              <TouchableOpacity 
+                style={styles.addAddressButton} 
+                onPress={() => {
+                  setFormTitle(''); setFormCep(''); setFormStreet(''); setFormNeighborhood(''); setFormCity(''); setFormNumber(''); setFormComplement(''); setEditingAddressId(null);
+                  setIsAddressModalOpen(false);
+                  setIsAddressFormOpen(true);
+                }}
+              >
+                <MaterialIcons name="add" size={20} color={theme.colors.white} />
+                <Text style={styles.addAddressText}>Adicionar novo endereço</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ---- MODAL: FORMULÁRIO DE ENDEREÇO (NOVO OU EDITAR) ---- */}
+      <Modal visible={isAddressFormOpen} transparent animationType="slide">
         <KeyboardAvoidingView 
           style={styles.modalOverlay} 
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Alterar Endereço</Text>
-              <TouchableOpacity onPress={() => setIsAddressModalOpen(false)}>
+              <Text style={styles.modalTitle}>{editingAddressId ? 'Editar Endereço' : 'Novo Endereço'}</Text>
+              <TouchableOpacity onPress={() => setIsAddressFormOpen(false)}>
                 <MaterialIcons name="close" size={24} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Text style={styles.inputLabel}>Título do endereço</Text>
+              
+              <Text style={styles.inputLabel}>Apelido do Local</Text>
               <TextInput 
                 style={styles.input} 
                 value={formTitle} 
                 onChangeText={setFormTitle} 
                 placeholder="Ex: Casa, Trabalho" 
+                placeholderTextColor={theme.colors.textOutline}
               />
 
-              {/* CEP com botão de busca */}
               <Text style={styles.inputLabel}>CEP</Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TextInput 
@@ -530,6 +688,7 @@ export default function Checkout() {
                   value={formCep} 
                   onChangeText={(text) => setFormCep(text.replace(/\D/g, '').slice(0, 8))} 
                   placeholder="00000000" 
+                  placeholderTextColor={theme.colors.textOutline}
                   keyboardType="numeric"
                   maxLength={8}
                   onBlur={handleSearchCep}
@@ -555,7 +714,8 @@ export default function Checkout() {
                 style={styles.input} 
                 value={formStreet} 
                 onChangeText={setFormStreet} 
-                placeholder="Preenchido automaticamente" 
+                placeholder="Ex: Alameda das Hortênsias" 
+                placeholderTextColor={theme.colors.textOutline}
               />
 
               <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -566,6 +726,7 @@ export default function Checkout() {
                     value={formNumber} 
                     onChangeText={setFormNumber} 
                     placeholder="123" 
+                    placeholderTextColor={theme.colors.textOutline}
                     keyboardType="numeric" 
                   />
                 </View>
@@ -575,7 +736,8 @@ export default function Checkout() {
                     style={styles.input} 
                     value={formComplement} 
                     onChangeText={setFormComplement} 
-                    placeholder="Apto 42" 
+                    placeholder="Ex: Apto 42" 
+                    placeholderTextColor={theme.colors.textOutline}
                   />
                 </View>
               </View>
@@ -585,7 +747,8 @@ export default function Checkout() {
                 style={styles.input} 
                 value={formNeighborhood} 
                 onChangeText={setFormNeighborhood} 
-                placeholder="Preenchido automaticamente" 
+                placeholder="Ex: Jardins" 
+                placeholderTextColor={theme.colors.textOutline}
               />
 
               <Text style={styles.inputLabel}>Cidade - Estado</Text>
@@ -593,11 +756,12 @@ export default function Checkout() {
                 style={styles.input} 
                 value={formCity} 
                 onChangeText={setFormCity} 
-                placeholder="Preenchido automaticamente" 
+                placeholder="Ex: São Paulo - SP" 
+                placeholderTextColor={theme.colors.textOutline}
               />
 
               <TouchableOpacity style={styles.modalSaveButton} onPress={handleSaveAddress}>
-                <Text style={styles.modalSaveText}>Salvar Endereço</Text>
+                <Text style={styles.modalSaveText}>{editingAddressId ? 'Salvar Alterações' : 'Salvar Novo Endereço'}</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -624,7 +788,8 @@ export default function Checkout() {
                 style={styles.input} 
                 value={cardNumber} 
                 onChangeText={(text) => setCardNumber(text.replace(/\D/g, '').slice(0, 19))} 
-                placeholder="Somente números" 
+                placeholder="0000 0000 0000 0000" 
+                placeholderTextColor={theme.colors.textOutline}
                 keyboardType="numeric"
                 maxLength={19}
               />
@@ -635,6 +800,7 @@ export default function Checkout() {
                 value={cardName} 
                 onChangeText={setCardName} 
                 placeholder="Como está no cartão" 
+                placeholderTextColor={theme.colors.textOutline}
                 autoCapitalize="characters" 
               />
 
@@ -649,6 +815,7 @@ export default function Checkout() {
                       setCardExpiry(digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits);
                     }} 
                     placeholder="MM/AA" 
+                    placeholderTextColor={theme.colors.textOutline}
                     keyboardType="numeric"
                     maxLength={5} 
                   />
@@ -660,6 +827,7 @@ export default function Checkout() {
                     value={cardCvv} 
                     onChangeText={(text) => setCardCvv(text.replace(/\D/g, '').slice(0, 4))} 
                     placeholder="123" 
+                    placeholderTextColor={theme.colors.textOutline}
                     keyboardType="numeric" 
                     maxLength={4} 
                     secureTextEntry 
@@ -688,7 +856,7 @@ export default function Checkout() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center' }}>
               <Text style={styles.pixInstructions}>
-                Escaneie o QR Code demonstrativo ou copie o código PIX. Este código não recebe pagamentos reais.
+                Escaneie o QR Code demonstrativo ou copie o código PIX.
               </Text>
 
               <View style={styles.qrContainer}>
@@ -716,7 +884,7 @@ export default function Checkout() {
                 <Text style={styles.pinValue}>{PIX_PIN}</Text>
               </View>
               <Text style={styles.pinHint}>
-                Em um app real, o PIN seria enviado por SMS ou e-mail. Este é apenas um PIN demonstrativo.
+                Em um app real, o PIN seria enviado por SMS ou e-mail.
               </Text>
 
               <TouchableOpacity style={styles.confirmPixButton} onPress={handleConfirmPix}>
@@ -728,6 +896,7 @@ export default function Checkout() {
         </View>
       </Modal>
 
+      {/* ---- MODAL DE NOTIFICAÇÃO GERAL ---- */}
       <Modal
         visible={notice !== null}
         transparent
@@ -735,21 +904,33 @@ export default function Checkout() {
         onRequestClose={() => setNotice(null)}
       >
         <View style={styles.noticeOverlay}>
-          <View style={[styles.noticeCard, notice?.kind === 'success' && styles.successNoticeCard]}>
-            <View style={[styles.noticeIcon, notice?.kind === 'success' && styles.successNoticeIcon]}>
+          <View style={[
+            styles.noticeCard, 
+            notice?.kind === 'success' && styles.successNoticeCard,
+            notice?.kind === 'confirm-delete' && styles.deleteNoticeCard
+          ]}>
+            <View style={[
+              styles.noticeIcon, 
+              notice?.kind === 'success' && styles.successNoticeIcon,
+              notice?.kind === 'confirm-delete' && styles.deleteNoticeIcon
+            ]}>
               <MaterialIcons
-                name={notice?.kind === 'success' ? 'local-florist' : 'spa'}
-                size={notice?.kind === 'success' ? 38 : 30}
-                color={notice?.kind === 'success' ? theme.colors.floralPink : theme.colors.primary}
+                name={
+                  notice?.kind === 'success' ? 'local-florist' : 
+                  notice?.kind === 'confirm-delete' ? 'delete-forever' : 'spa'
+                }
+                size={notice?.kind === 'success' ? 38 : notice?.kind === 'confirm-delete' ? 32 : 30}
+                color={
+                  notice?.kind === 'success' ? theme.colors.floralPink : 
+                  notice?.kind === 'confirm-delete' ? theme.colors.error : theme.colors.primary
+                }
               />
-              {notice?.kind === 'success' && (
-                <View style={styles.noticeSuccessBadge}>
-                  <MaterialIcons name="check" size={15} color={theme.colors.white} />
-                </View>
-              )}
             </View>
             {notice?.kind === 'success' && (
               <Text style={styles.noticeEyebrow}>COM CARINHO, TRIFLORA</Text>
+            )}
+            {notice?.kind === 'confirm-delete' && (
+              <Text style={[styles.noticeEyebrow, { color: theme.colors.error }]}>ATENÇÃO</Text>
             )}
             <Text style={styles.noticeTitle}>{notice?.title}</Text>
             <Text style={styles.noticeMessage}>{notice?.message}</Text>
@@ -759,15 +940,33 @@ export default function Checkout() {
                 <Text style={styles.noticeAmount}>{notice.amount}</Text>
               </View>
             )}
-            <TouchableOpacity
-              style={[styles.noticeButton, notice?.kind === 'success' && styles.successNoticeButton]}
-              onPress={handleNoticeConfirm}
-              accessibilityRole="button"
-            >
-              <Text style={styles.noticeButtonText}>
-                {notice?.onConfirm ? 'Voltar ao Início' : 'Entendi'}
-              </Text>
-            </TouchableOpacity>
+            
+            <View style={styles.noticeActions}>
+              {notice?.kind === 'confirm-delete' && (
+                <TouchableOpacity
+                  style={styles.cancelDeleteButton}
+                  onPress={handleNoticeCancel}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.cancelDeleteText}>Cancelar</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={[
+                  styles.noticeButton, 
+                  notice?.kind === 'success' && styles.successNoticeButton,
+                  notice?.kind === 'confirm-delete' && styles.deleteNoticeButton,
+                  notice?.kind === 'confirm-delete' && { flex: 1, marginLeft: 8, marginTop: 0 }
+                ]}
+                onPress={handleNoticeConfirm}
+                accessibilityRole="button"
+              >
+                <Text style={styles.noticeButtonText}>
+                  {notice?.kind === 'confirm-delete' ? 'Excluir' : notice?.onConfirm ? 'Voltar ao Início' : 'Entendi'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -820,11 +1019,84 @@ const styles = StyleSheet.create({
   addCardText: { fontFamily: theme.fonts.bodyBold, fontSize: 12, color: theme.colors.primary, marginLeft: 6 },
 
   itemCount: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.textOutline },
-  itemRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, backgroundColor: theme.colors.surfaceContainer, padding: 8, borderRadius: theme.radius.sm },
-  itemImage: { width: 50, height: 50, borderRadius: 8, marginRight: 12 },
-  itemName: { fontFamily: theme.fonts.bodyMedium, fontSize: 13, color: theme.colors.primary },
-  itemQty: { fontFamily: theme.fonts.body, fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 },
-  itemPrice: { fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.primary },
+  
+  // --- ESTILOS DO CARD DE ITEM (MODO BRANCO, SEM CONTORNO) ---
+  checkoutItemCard: { 
+    flexDirection: 'row', 
+    backgroundColor: theme.colors.surface, 
+    borderRadius: theme.radius.md, 
+    padding: 12, 
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  checkoutItemClickable: {
+    flexDirection: 'row',
+    flex: 1,
+  },
+  checkoutItemImage: { 
+    width: 80, 
+    height: 80, 
+    borderRadius: theme.radius.sm, 
+    marginRight: 12 
+  },
+  checkoutItemInfo: { 
+    flex: 1, 
+    justifyContent: 'center', 
+  },
+  checkoutItemTag: { 
+    backgroundColor: theme.colors.primaryFixed, 
+    alignSelf: 'flex-start', 
+    paddingHorizontal: 6, 
+    paddingVertical: 2, 
+    borderRadius: 4, 
+    marginBottom: 4 
+  },
+  checkoutItemTagText: { 
+    fontFamily: theme.fonts.bodyBold, 
+    fontSize: 9, 
+    color: theme.colors.primary 
+  },
+  checkoutItemName: { 
+    fontFamily: theme.fonts.title, 
+    fontSize: 16, 
+    color: theme.colors.primary,
+    marginBottom: 2,
+  },
+  itemQty: { 
+    fontFamily: theme.fonts.body, 
+    fontSize: 12, 
+    color: theme.colors.textSecondary, 
+    marginBottom: 4 
+  },
+  checkoutItemPrice: { 
+    fontFamily: theme.fonts.bodyBold, 
+    fontSize: 16, 
+    color: theme.colors.primary 
+  },
+  checkoutItemActions: { 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    paddingLeft: 8, 
+  },
+  
+  vaseTag: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: theme.colors.terracotta, 
+    alignSelf: 'flex-start', 
+    paddingHorizontal: 8, 
+    paddingVertical: 3, 
+    borderRadius: 10, 
+    marginTop: 4, 
+    marginBottom: 2 
+  },
+  vaseTagText: { 
+    fontFamily: theme.fonts.bodyBold, 
+    fontSize: 8, 
+    color: theme.colors.white, 
+    marginLeft: 4,
+    letterSpacing: 0.5
+  },
 
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   summaryLabel: { fontFamily: theme.fonts.body, fontSize: 14, color: theme.colors.textSecondary },
@@ -851,21 +1123,40 @@ const styles = StyleSheet.create({
   modalContent: { maxHeight: '92%', backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg, padding: 20, paddingBottom: 32 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   modalTitle: { fontFamily: theme.fonts.title, fontSize: 20, color: theme.colors.primary },
+
+  addressOption: { flexDirection: 'row', alignItems: 'center', padding: 12, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.sm, marginBottom: 10, backgroundColor: theme.colors.surfaceContainer },
+  addressOptionActive: { borderColor: theme.colors.primary, backgroundColor: theme.colors.primaryFixed },
+  addressOptionLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  addressOptionTitle: { fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.primary, marginBottom: 2 },
+  addressOptionText: { fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.textSecondary, marginBottom: 2 },
+  addressActions: { flexDirection: 'row', alignItems: 'center', marginLeft: 8 },
+  actionButton: { padding: 8, marginLeft: 4 },
+  addAddressButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, backgroundColor: theme.colors.primary, borderRadius: theme.radius.sm, marginTop: 12, marginBottom: 12 },
+  addAddressText: { fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.white, marginLeft: 8 },
+
   noticeOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: 'rgba(28, 38, 30, 0.48)' },
   noticeCard: { width: '100%', maxWidth: 380, alignItems: 'center', backgroundColor: theme.colors.surface, padding: 24, borderRadius: 32, borderWidth: 1, borderColor: theme.colors.border, elevation: 8 },
   successNoticeCard: { backgroundColor: '#FFF2F5', borderColor: theme.colors.floralPink, borderWidth: 2 },
+  deleteNoticeCard: { backgroundColor: '#FFF5F5', borderColor: theme.colors.error, borderWidth: 2 }, 
   noticeIcon: { width: 56, height: 56, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.primaryFixed, borderRadius: 28, marginBottom: 14 },
   successNoticeIcon: { width: 76, height: 76, borderRadius: 38, marginBottom: 12, position: 'relative' },
-  noticeSuccessBadge: { position: 'absolute', right: -2, bottom: -2, width: 25, height: 25, borderRadius: 13, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.secondary, borderWidth: 2, borderColor: theme.colors.surface },
+  deleteNoticeIcon: { backgroundColor: 'rgba(186, 26, 26, 0.1)' }, 
   noticeEyebrow: { fontFamily: theme.fonts.bodyBold, fontSize: 10, letterSpacing: 1, color: theme.colors.secondary, marginBottom: 6 },
   noticeTitle: { fontFamily: theme.fonts.title, fontSize: 21, color: theme.colors.primary, textAlign: 'center' },
   noticeMessage: { fontFamily: theme.fonts.body, fontSize: 14, lineHeight: 21, color: theme.colors.textSecondary, textAlign: 'center', marginTop: 10 },
   noticeAmountBox: { width: '100%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.colors.surfaceContainer, borderRadius: theme.radius.sm, padding: 14, marginTop: 18 },
   noticeAmountLabel: { fontFamily: theme.fonts.bodyMedium, fontSize: 13, color: theme.colors.textSecondary },
   noticeAmount: { fontFamily: theme.fonts.bodyBold, fontSize: 16, color: theme.colors.primary },
-  noticeButton: { width: '100%', height: 48, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.primary, borderRadius: 24, marginTop: 22 },
-  successNoticeButton: { backgroundColor: theme.colors.floralPink, marginTop: 18 },
+  
+  noticeActions: { width: '100%', flexDirection: 'row', justifyContent: 'space-between', marginTop: 22 },
+  noticeButton: { flex: 1, height: 48, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.primary, borderRadius: 24 },
+  successNoticeButton: { backgroundColor: theme.colors.floralPink },
+  deleteNoticeButton: { backgroundColor: theme.colors.error }, 
   noticeButtonText: { fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.white },
+  
+  cancelDeleteButton: { flex: 1, height: 48, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.surfaceContainer, borderRadius: 24, marginRight: 8 },
+  cancelDeleteText: { fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.primary },
+
   inputLabel: { fontFamily: theme.fonts.bodyMedium, fontSize: 12, color: theme.colors.primary, marginTop: 10, marginBottom: 6 },
   input: { height: 46, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.sm, paddingHorizontal: 12, color: theme.colors.primary, backgroundColor: theme.colors.surfaceContainer },
   cepSearchButton: { width: 46, height: 46, borderRadius: theme.radius.sm, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center' },
@@ -883,6 +1174,6 @@ const styles = StyleSheet.create({
   pinLabel: { flex: 1, fontFamily: theme.fonts.bodyMedium, fontSize: 12, color: theme.colors.primary, marginLeft: 8 },
   pinValue: { fontFamily: theme.fonts.bodyBold, fontSize: 16, color: theme.colors.primary },
   pinHint: { fontFamily: theme.fonts.body, fontSize: 10, color: theme.colors.textSecondary, textAlign: 'center', marginTop: 8 },
-  confirmPixButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 48, width: '100%', borderRadius: 24, backgroundColor: theme.colors.secondary, marginTop: 16 },
+  confirmPixButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 48, width: '100%', borderRadius: 24, backgroundColor: theme.colors.primary, marginTop: 16 },
   confirmPixText: { fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.white, marginLeft: 8 },
 });

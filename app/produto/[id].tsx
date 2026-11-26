@@ -22,22 +22,28 @@ export default function ProdutoDetalhes() {
     return (
       <View style={styles.container}>
         <Header showBackButton />
-        <Text style={{ textAlign: 'center', marginTop: 50 }}>Produto não encontrado.</Text>
+        <Text style={{ textAlign: 'center', marginTop: 100 }}>Produto não encontrado.</Text>
       </View>
     );
   }
 
   const vasePrice = 48.00;
-  const totalPrice = (product.price * quantity) + (hasVase ? vasePrice : 0);
+  const totalPrice = (product.price * quantity) + (hasVase ? vasePrice * quantity : 0);
 
   const handleAddToCart = () => {
-    addItem({
-      id: product.id,
-      name: product.name + (hasVase ? ' (com Vaso)' : ''),
-      price: product.price + (hasVase ? vasePrice : 0),
-      image: product.image,
-      type: 'product'
-    });
+    const finalId = product.id + (hasVase ? '-vase' : '');
+    
+    for (let i = 0; i < quantity; i++) {
+      addItem({
+        id: finalId,
+        name: product.name + (hasVase ? ' | com Vaso' : ''), 
+        price: product.price + (hasVase ? vasePrice : 0),
+        image: product.image,
+        type: 'product',
+        hasVase: hasVase
+      });
+    }
+    
     router.push('/carrinho');
   };
 
@@ -152,7 +158,6 @@ export default function ProdutoDetalhes() {
           <View style={styles.relatedSection}>
             <View style={styles.relatedHeader}>
               <Text style={styles.sectionTitle}>Você também pode amar</Text>
-              {/* ✅ CORREÇÃO: agora leva para a Home filtrada pela categoria */}
               <TouchableOpacity onPress={handleSeeAll}>
                 <Text style={styles.seeAllText}>Ver Todos</Text>
               </TouchableOpacity>
@@ -203,7 +208,9 @@ export default function ProdutoDetalhes() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   mainContainer: { flex: 1, backgroundColor: theme.colors.background },
-  scrollContent: { paddingBottom: 100 },
+  
+  // ✨ CORREÇÃO AQUI: paddingTop de 90 para empurrar o conteúdo abaixo do Header
+  scrollContent: { paddingBottom: 100, paddingTop: 90 },
   
   imageContainer: { marginHorizontal: theme.spacing.margin, marginTop: 8, height: 350, borderRadius: theme.radius.lg, overflow: 'hidden', position: 'relative' },
   mainImage: { width: '100%', height: '100%' },
