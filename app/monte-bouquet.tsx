@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { theme } from '../theme';
@@ -20,6 +20,9 @@ export default function MonteBouquet() {
   const [showRecommendationWarning, setShowRecommendationWarning] = useState(false);
   const [showMaxWarning, setShowMaxWarning] = useState(false);
   const [showMinWarning, setShowMinWarning] = useState(false);
+
+  // ✨ Novo estado para controlar o Modal de Aviso
+  const [isWarningModalVisible, setIsWarningModalVisible] = useState(false);
 
   useEffect(() => {
     const total = Object.values(quantities).reduce((acc, qty) => acc + qty, 0);
@@ -64,11 +67,8 @@ export default function MonteBouquet() {
     const totalStems = Object.values(quantities).reduce((acc, qty) => acc + qty, 0);
     
     if (step === 1 && totalStems < 2) {
-      Alert.alert(
-        "Atenção",
-        "Selecione pelo menos 2 hastes para montar um arranjo. Se for apenas 1 flor, isso é uma flor unitária.",
-        [{ text: "Entendi" }]
-      );
+      // ✨ Abre o modal estilizado em vez do Alert padrão
+      setIsWarningModalVisible(true);
       return;
     }
     setStep(step + 1);
@@ -97,7 +97,7 @@ export default function MonteBouquet() {
       id: `custom-${Date.now()}`,
       name: 'Arranjo Autoral Triflora',
       price: totalPrice,
-      image: localImages.bouquetPreview, // Aqui mantemos para o carrinho
+      image: localImages.bouquetPreview,
       type: 'custom_bouquet'
     });
     router.push('/(tabs)/carrinho');
@@ -117,6 +117,7 @@ export default function MonteBouquet() {
             <Image source={flower.image} style={styles.flowerImage} />
             <View style={styles.flowerInfo}>
               
+              {/* BOLINHA DE COR COM CONTORNO SUAVE */}
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                 <View 
                   style={{ 
@@ -202,7 +203,11 @@ export default function MonteBouquet() {
               style={[styles.foliageCard, isSelected && styles.foliageCardActive]}
               onPress={() => toggleFoliage(foliage.id)}
             >
-              <Image source={foliage.image} style={styles.foliageImage} />
+              <Image
+                source={foliage.image}
+                style={styles.foliageImage}
+                resizeMode="cover"
+              />
               <Text style={styles.foliageName}>{foliage.name}</Text>
               <Text style={styles.foliagePrice}>+ R$ {foliage.price.toFixed(2).replace('.', ',')}</Text>
             </TouchableOpacity>
@@ -280,15 +285,13 @@ export default function MonteBouquet() {
           
           <View style={styles.imageHalo}>
             <Image 
-              // ✨ CORREÇÃO: Trocamos o bouquetPreview por uma imagem que com certeza existe (products.b1)
-              source={localImages.products.b1} 
+              source={localImages.products.b1}
               style={styles.bouquetImage} 
             />
           </View>
 
           <Text style={styles.bouquetTitle}>Arranjo Autoral</Text>
           
-          {/* ✨ CORREÇÃO: A barra de progresso agora tem fundo para ser visível */}
           <View style={styles.progressBarContainer}>
             {flowersData.map(flower => {
               const qty = quantities[flower.id] || 0;
@@ -348,6 +351,33 @@ export default function MonteBouquet() {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* ✨ MODAL DE AVISO ESTILIZADO */}
+      <Modal visible={isWarningModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.warningModalCard}>
+            
+            <View style={styles.warningIconCircle}>
+              <MaterialIcons name="local-florist" size={32} color={theme.colors.primary} />
+            </View>
+            
+            <Text style={styles.warningEyebrow}>ATENÇÃO</Text>
+            <Text style={styles.warningTitle}>Arranjo incompleto</Text>
+            <Text style={styles.warningMessage}>
+              Selecione no mínimo 2 flores para montar o seu arranjo. Se for apenas 1 flor, temos a opção de "Flores Soltas" no catálogo.
+            </Text>
+
+            <TouchableOpacity 
+              style={styles.warningButton} 
+              onPress={() => setIsWarningModalVisible(false)}
+            >
+              <Text style={styles.warningButtonText}>Entendi</Text>
+            </TouchableOpacity>
+
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -451,7 +481,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
-    overflow: 'hidden', // Garante que a imagem não vaze do círculo
+    overflow: 'hidden',
   },
   bouquetImage: {
     width: '100%',
@@ -770,6 +800,75 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.white,
     marginRight: 8,
+    textTransform: 'uppercase',
+  },
+
+  // ✨ ESTILOS DO NOVO MODAL DE AVISO
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(28, 38, 30, 0.48)',
+    padding: 24,
+  },
+  warningModalCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 32,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  warningIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: theme.colors.primaryFixed,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  warningEyebrow: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 10,
+    color: theme.colors.secondary,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  warningTitle: {
+    fontFamily: theme.fonts.title,
+    fontSize: 22,
+    color: theme.colors.primary,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  warningMessage: {
+    fontFamily: theme.fonts.body,
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  warningButton: {
+    width: '100%',
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  warningButtonText: {
+    fontFamily: theme.fonts.bodyBold,
+    fontSize: 14,
+    color: theme.colors.white,
     textTransform: 'uppercase',
   },
 });
